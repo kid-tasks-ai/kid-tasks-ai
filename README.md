@@ -1,2 +1,21 @@
-# kid-tasks-ai
-Platform for automated generation of personalized educational tasks for children using GPT-4o-mini (128K context window). The system creates engaging learning materials, while parents can customize parameters and children earn points redeemable for rewards, making education both effective and entertaining.
+# KidTasks AI
+
+AI-powered платформа для автоматической генерации персонализированных развивающих заданий для детей. Родители настраивают параметры, ИИ создает задания, дети получают баллы за выполнение и обменивают их на награды.
+
+## О проекте
+
+Проект разрабатывается в рамках хакатона Ogon AI (20-27 января 2025) с использованием модели GPT-4o-mini (контекстное окно 128K токенов).
+
+## Цели хакатона
+
+- Разработать прототип системы генерации персонализированных заданий
+- Реализовать базовый функционал настройки параметров для родителей
+- Создать простую систему начисления баллов
+- Интегрировать GPT-4o-mini для генерации контента
+- Обеспечить удобный пользовательский интерфейс
+
+## Команда
+
+- **Roman Zabolotin** - rzabolotin@gmail.com
+- **Daniil Trikhleb** - trihlebdv@gmail.com
+- **Maria Grebenkina** - grebenkina.mm@gmail.com

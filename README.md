@@ -33,3 +33,4 @@ AI-powered платформа для автоматической генерац
 - **Roman Zabolotin** - rzabolotin@gmail.com
 - **Daniil Trikhleb** - trihlebdv@gmail.com
 - **Maria Grebenkina** - grebenkina.mm@gmail.com
+- **Dmitriy Nikitin** - it@konit.ru

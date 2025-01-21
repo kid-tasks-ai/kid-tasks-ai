@@ -1,0 +1,101 @@
+erDiagram
+    Users ||--o{ Children : manages
+    Users ||--o{ TaskTemplates : creates
+    Users ||--o{ Rewards : creates
+    Users {
+        int id PK
+        string email UK
+        string password_hash
+        string name
+        datetime created_at
+        datetime updated_at
+    }
+
+    Children ||--o{ TaskAssignments : receives
+    Children ||--o{ RewardClaims : claims
+    Children {
+        int id PK
+        int parent_id FK
+        string email UK
+        string password_hash
+        string name
+        int age
+        text interests
+        text preferences
+        int points_balance
+        datetime created_at
+        datetime updated_at
+    }
+
+    TaskTemplates ||--o{ TaskAssignments : generates
+    TaskTemplates {
+        int id PK
+        int parent_id FK
+        string title
+        text description
+        int points_value
+        string category
+        boolean is_active
+        string schedule_type "once/daily/weekly"
+        json schedule_settings
+        datetime created_at
+        datetime updated_at
+    }
+
+    TaskAssignments {
+        int id PK
+        int template_id FK
+        int child_id FK
+        string status "pending/in_progress/completed/verified/rejected"
+        text completion_proof
+        text parent_feedback
+        datetime assigned_at
+        datetime started_at
+        datetime completed_at
+        datetime verified_at
+    }
+
+    Rewards ||--o{ RewardClaims : offers
+    Rewards {
+        int id PK
+        int parent_id FK
+        string name
+        text description
+        int points_cost
+        boolean is_active
+        string category
+        int stock_quantity "null for unlimited"
+        datetime created_at
+        datetime updated_at
+    }
+
+    RewardClaims {
+        int id PK
+        int reward_id FK
+        int child_id FK
+        string status "pending/approved/rejected/fulfilled"
+        text rejection_reason
+        datetime claimed_at
+        datetime processed_at
+    }
+
+    GenerationSettings {
+        int id PK
+        int parent_id FK
+        int templates_per_period
+        string period_type
+        boolean moderation_required
+        json ai_preferences
+        json subjects_focus
+        json skills_focus
+        datetime created_at
+        datetime updated_at
+    }
+
+    Statistics {
+        int id PK
+        int child_id FK
+        string metric_type
+        json metric_data
+        datetime recorded_at
+    }

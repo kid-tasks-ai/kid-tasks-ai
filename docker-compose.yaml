@@ -34,10 +34,14 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - /app/.nuxt
     ports:
       - "3000:3000"
     environment:
       NUXT_PUBLIC_API_BASE: http://localhost:8000
+      HOST: 0.0.0.0
+      CHOKIDAR_USEPOLLING: "true" # Включаем polling для лучшего определения изменений в файлах
+      WATCHPACK_POLLING: "true"    # Для webpack/vite file watching в Docker
     depends_on:
       - backend
 

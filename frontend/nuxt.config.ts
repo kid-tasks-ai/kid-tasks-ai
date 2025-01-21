@@ -41,6 +41,4 @@ export default defineNuxtConfig({
     exposeConfig: true,
     viewer: process.env.NODE_ENV === 'development'
   },
-
-
 })

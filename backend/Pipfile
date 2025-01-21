@@ -6,9 +6,15 @@ name = "pypi"
 [packages]
 openai = "*"
 fastapi = "*"
-psycopg = "*"
 uvicorn = "*"
 pydantic = "*"
+psycopg2-binary = "*"
+sqlalchemy = "*"
+pydantic-settings = "*"
+email-validator = "*"
+python-jose = {extras = ["cryptography"], version = "*"}
+passlib = "*"
+python-multipart = "*"
 
 [dev-packages]
 

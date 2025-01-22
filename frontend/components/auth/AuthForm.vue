@@ -82,6 +82,8 @@ async function handleSubmit() {
 
   try {
     if (isLogin.value) {
+      // Изменяем формат отправки данных на JSON и добавляем заголовки
+      // Создаем FormData для OAuth2
       const formBody = new FormData()
       formBody.append('username', formData.email)
       formBody.append('password', formData.password)
@@ -92,8 +94,16 @@ async function handleSubmit() {
         body: formBody
       })
 
+      console.log('Login response:', response) // Добавляем логирование
+
       if (response?.access_token) {
+        console.log('Setting auth token:', response.access_token) // Логируем токен
         setAuth(response.access_token, response.role)
+
+        // Проверяем, что токен сохранился
+        const savedToken = localStorage.getItem('auth_token')
+        console.log('Saved token:', savedToken)
+
         router.push(response.role === 'parent' ? '/parent' : '/child')
       }
     } else {
@@ -104,6 +114,9 @@ async function handleSubmit() {
           email: formData.email,
           password: formData.password,
           name: formData.name
+        },
+        headers: {
+          'Content-Type': 'application/json'
         }
       })
 
@@ -113,9 +126,12 @@ async function handleSubmit() {
       }
     }
   } catch (err) {
+    console.error('Auth error:', err) // Добавляем логирование ошибок
     error.value = err.data?.detail || 'Произошла ошибка при обработке запроса'
   } finally {
     loading.value = false
   }
 }
 </script>
+
+

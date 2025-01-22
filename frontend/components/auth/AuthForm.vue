@@ -1,137 +1,131 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gray-100">
-    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-      <h2 class="text-2xl font-bold mb-6 text-center">
-        {{ isLogin ? 'Вход' : 'Регистрация' }}
-      </h2>
+    <UCard class="w-full max-w-md">
+      <template #header>
+        <h2 class="text-2xl font-bold text-center">
+          {{ isLogin ? 'Вход' : 'Регистрация' }}
+        </h2>
+      </template>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
-        <div v-if="!isLogin">
-          <label class="block text-sm font-medium text-gray-700">Имя</label>
-          <input
+        <UFormGroup v-if="!isLogin" label="Имя" required>
+          <UInput
               v-model="formData.name"
-              type="text"
-              required
-              class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
               placeholder="Введите ваше имя"
-          >
-        </div>
+          />
+        </UFormGroup>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Email</label>
-          <input
+        <UFormGroup label="Email" required>
+          <UInput
               v-model="formData.email"
               type="email"
-              required
-              class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
               placeholder="Введите ваш email"
-          >
-        </div>
+          />
+        </UFormGroup>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Пароль</label>
-          <input
+        <UFormGroup label="Пароль" required>
+          <UInput
               v-model="formData.password"
               type="password"
-              required
-              class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
               placeholder="Введите пароль"
-          >
-        </div>
+          />
+        </UFormGroup>
 
-        <div v-if="error" class="text-red-500 text-sm">
-          {{ error }}
-        </div>
+        <UAlert
+            v-if="error"
+            :description="error"
+            color="red"
+            variant="soft"
+            class="mt-4"
+        />
 
-        <button
+        <UButton
             type="submit"
-            class="w-full bg-blue-500 text-white rounded-md py-2 hover:bg-blue-600 transition-colors"
-            :disabled="loading"
+            block
+            color="primary"
+            :loading="loading"
         >
-          {{ loading ? 'Загрузка...' : (isLogin ? 'Войти' : 'Зарегистрироваться') }}
-        </button>
+          {{ submitButtonText }}
+        </UButton>
       </form>
 
-      <button
-          @click="isLogin = !isLogin"
-          class="mt-4 text-blue-500 hover:underline text-sm w-full text-center"
-      >
-        {{ isLogin ? 'Нет аккаунта? Зарегистрируйтесь' : 'Уже есть аккаунт? Войдите' }}
-      </button>
-    </div>
+      <template #footer>
+        <UButton
+            variant="ghost"
+            color="gray"
+            block
+            @click="toggleAuthMode"
+        >
+          {{ toggleButtonText }}
+        </UButton>
+      </template>
+    </UCard>
   </div>
 </template>
 
-<script setup>
-const config = useRuntimeConfig()
-const { setAuth } = useAuth()
-const router = useRouter()
+<script>
+import { useAuthStore } from '~/stores/auth'
 
-const isLogin = ref(true)
-const error = ref('')
-const loading = ref(false)
-const formData = reactive({
-  email: '',
-  password: '',
-  name: ''
-})
+export default {
+  name: 'AuthForm',
 
-async function handleSubmit() {
-  error.value = ''
-  loading.value = true
-
-  try {
-    if (isLogin.value) {
-      // Изменяем формат отправки данных на JSON и добавляем заголовки
-      // Создаем FormData для OAuth2
-      const formBody = new FormData()
-      formBody.append('username', formData.email)
-      formBody.append('password', formData.password)
-
-      const response = await $fetch('/api/v1/auth/login', {
-        baseURL: config.public.apiBase,
-        method: 'POST',
-        body: formBody
-      })
-
-      console.log('Login response:', response) // Добавляем логирование
-
-      if (response?.access_token) {
-        console.log('Setting auth token:', response.access_token) // Логируем токен
-        setAuth(response.access_token, response.role)
-
-        // Проверяем, что токен сохранился
-        const savedToken = localStorage.getItem('auth_token')
-        console.log('Saved token:', savedToken)
-
-        router.push(response.role === 'parent' ? '/parent' : '/child')
-      }
-    } else {
-      const response = await $fetch('/api/v1/auth/register', {
-        baseURL: config.public.apiBase,
-        method: 'POST',
-        body: {
-          email: formData.email,
-          password: formData.password,
-          name: formData.name
-        },
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (response?.id) {
-        isLogin.value = true
-        await handleSubmit()
+  data() {
+    return {
+      isLogin: true,
+      error: '',
+      loading: false,
+      formData: {
+        email: '',
+        password: '',
+        name: ''
       }
     }
-  } catch (err) {
-    console.error('Auth error:', err) // Добавляем логирование ошибок
-    error.value = err.data?.detail || 'Произошла ошибка при обработке запроса'
-  } finally {
-    loading.value = false
-  }
+  },
+
+  computed: {
+    submitButtonText() {
+      if (this.loading) return 'Загрузка...'
+      return this.isLogin ? 'Войти' : 'Зарегистрироваться'
+    },
+    toggleButtonText() {
+      return this.isLogin
+          ? 'Нет аккаунта? Зарегистрируйтесь'
+          : 'Уже есть аккаунт? Войдите'
+    }
+  },
+
+  methods: {
+    toggleAuthMode() {
+      this.isLogin = !this.isLogin
+      this.error = ''
+    },
+
+    async handleSubmit() {
+      this.error = ''
+      this.loading = true
+      const auth = useAuthStore()
+
+      try {
+        if (this.isLogin) {
+          const role = await auth.login(this.formData.email, this.formData.password)
+          this.$router.push(role === 'parent' ? '/parent' : '/child')
+        } else {
+          await auth.register(this.formData)
+          this.isLogin = true
+          this.formData.password = ''
+          this.formData.name = ''
+        }
+      } catch (err) {
+        console.error('Auth error:', err)
+        this.error = err.data?.detail || 'Произошла ошибка при обработке запроса'
+      } finally {
+        this.loading = false
+      }
+    }
+  },
+  setup() {
+    const auth = useAuthStore()
+    return { auth }
+  },
 }
 </script>
-
-

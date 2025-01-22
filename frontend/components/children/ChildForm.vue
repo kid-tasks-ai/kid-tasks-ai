@@ -1,3 +1,4 @@
+<!-- components/children/ChildForm.vue -->
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-4">
     <UFormGroup label="Имя" required>
@@ -33,8 +34,8 @@
       <UInput
           v-model="form.age"
           type="number"
-          min="1"
-          max="18"
+          :min="1"
+          :max="18"
           placeholder="Введите возраст"
           :error="errors.age"
           required
@@ -77,87 +78,103 @@
   </form>
 </template>
 
-<script setup>
-const props = defineProps({
-  initialData: {
-    type: Object,
-    default: () => ({})
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  }
-})
+<script>
+export default {
+  name: 'ChildForm',
 
-const emit = defineEmits(['submit', 'cancel'])
-
-// Исправленное вычисляемое свойство
-const isEditing = computed(() => Boolean(props.initialData?.id))
-const submitButtonText = computed(() => isEditing.value ? 'Сохранить' : 'Добавить')
-
-const form = ref({
-  name: '',
-  email: '',
-  password: '',
-  age: null,
-  interests: '',
-  preferences: '',
-  ...(props.initialData || {})
-})
-
-const errors = ref({})
-
-// Сбрасываем форму при инициализации
-onMounted(() => {
-  resetForm()
-})
-
-function handleSubmit() {
-  const formData = {...form.value}
-
-  // Преобразуем age в число
-  if (formData.age) {
-    formData.age = parseInt(formData.age)
-  }
-
-  // Удаляем пустой пароль при редактировании
-  if (isEditing.value && !formData.password) {
-    delete formData.password
-  }
-
-  // Очищаем пустые строки
-  Object.keys(formData).forEach(key => {
-    if (formData[key] === '') {
-      formData[key] = null
+  props: {
+    initialData: {
+      type: Object,
+      default: () => ({})
+    },
+    loading: {
+      type: Boolean,
+      required: true
     }
-  })
+  },
 
-  emit('submit', formData)
-}
+  emits: ['submit', 'cancel'],
 
-function resetForm() {
-  form.value = {
-    name: '',
-    email: '',
-    password: '',
-    age: null,
-    interests: '',
-    preferences: '',
-    ...(props.initialData || {})
+  data() {
+    return {
+      form: {
+        name: '',
+        email: '',
+        password: '',
+        age: 0,
+        interests: '',
+        preferences: ''
+      },
+      errors: {}
+    }
+  },
+
+  computed: {
+    isEditing() {
+      return Boolean(this.initialData?.id)
+    },
+    submitButtonText() {
+      return this.isEditing ? 'Сохранить' : 'Добавить'
+    }
+  },
+
+  watch: {
+    initialData: {
+      handler(newData) {
+        this.form = {
+          name: '',
+          email: '',
+          password: '',
+          age: 0,
+          interests: '',
+          preferences: '',
+          ...(newData || {})
+        }
+      },
+      deep: true
+    }
+  },
+
+  mounted() {
+    this.resetForm()
+  },
+
+  methods: {
+    handleSubmit() {
+      const formData = { ...this.form }
+
+      // Преобразуем age в число
+      if (formData.age) {
+        formData.age = parseInt(String(formData.age))
+      }
+
+      // Удаляем пустой пароль при редактировании
+      if (this.isEditing && !formData.password) {
+        delete formData.password
+      }
+
+      // Очищаем пустые строки
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value === '') {
+          formData[key] = null
+        }
+      })
+
+      this.$emit('submit', formData)
+    },
+
+    resetForm() {
+      this.form = {
+        name: '',
+        email: '',
+        password: '',
+        age: 0,
+        interests: '',
+        preferences: '',
+        ...(this.initialData || {})
+      }
+      this.errors = {}
+    }
   }
-  errors.value = {}
 }
-
-// Исправленный watch с проверкой на null
-watch(() => props.initialData, (newData) => {
-  form.value = {
-    name: '',
-    email: '',
-    password: '',
-    age: '',
-    interests: '',
-    preferences: '',
-    ...(newData || {})
-  }
-}, {deep: true})
 </script>

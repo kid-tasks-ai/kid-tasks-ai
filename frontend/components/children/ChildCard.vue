@@ -1,3 +1,4 @@
+<!-- components/children/ChildCard.vue -->
 <template>
   <UCard>
     <template #header>
@@ -46,18 +47,31 @@
   </UCard>
 </template>
 
-<script setup>
-const props = defineProps({
-  child: {
-    type: Object,
-    required: true
+<script>
+export default {
+  name: 'ChildCard',
+
+  props: {
+    child: {
+      type: Object,
+      required: true,
+      validator(child) {
+        return (
+            'name' in child &&
+            'age' in child &&
+            'email' in child &&
+            'points_balance' in child
+        )
+      }
+    }
+  },
+
+  emits: ['edit', 'delete'],
+
+  methods: {
+    confirmDelete() {
+      this.$emit('delete')
+    }
   }
-})
-
-const emit = defineEmits(['edit', 'delete'])
-
-const confirmDelete = () => {
-  // Можно добавить модальное окно подтверждения
-  emit('delete')
 }
 </script>

@@ -47,8 +47,8 @@
     </UButton>
 
     <!-- Модальное окно формы -->
-    <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-lg w-full">
+    <UModal v-model="showForm">
+      <template #default>
         <h2 class="text-lg font-medium mb-4">
           {{ editingChild ? 'Редактировать профиль' : 'Добавить ребенка' }}
         </h2>
@@ -56,98 +56,95 @@
             :initial-data="editingChild || {}"
             :loading="formLoading"
             @submit="handleSubmit"
-            @cancel="closeForm"
         />
-      </div>
-    </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
-<script setup>
-import { useChildren } from '~/composables/useChildren'
+<script>
+import { useChildrenStore } from '~/stores/children'
 import ChildCard from '~/components/children/ChildCard.vue'
 import ChildForm from '~/components/children/ChildForm.vue'
 
-definePageMeta({
+export default {
+  name: 'ChildrenPage',
   layout: 'parent',
-  middleware: ['parent']
-})
+  middleware: ['parent'],
+  components: {
+    ChildCard,
+    ChildForm
+  },
 
-// Состояние
-const showForm = ref(false)
-const editingChild = ref(null)
-const formLoading = ref(false)
-
-// Отслеживаем изменение состояния модального окна
-watch(showForm, (newValue) => {
-  console.log('Modal state changed:', newValue)
-})
-
-// Получаем методы из composable
-const {
-  children,
-  loading,
-  error,
-  fetchChildren,
-  createChild,
-  updateChild,
-  deleteChild: removeChild
-} = useChildren()
-
-// Методы
-function showAddForm() {
-  console.log('Opening add form modal')
-  editingChild.value = null
-  showForm.value = true
-}
-
-function editChild(child) {
-  editingChild.value = {...child} // Создаем копию объекта
-  showForm.value = true
-}
-
-function closeForm() {
-  showForm.value = false
-  editingChild.value = null
-}
-
-async function handleSubmit(formData) {
-  try {
-    formLoading.value = true
-    console.log('Submitting form data:', formData)
-
-    if (editingChild.value?.id) {
-      console.log('Updating child:', editingChild.value.id)
-      await updateChild(editingChild.value.id, formData)
-    } else {
-      console.log('Creating new child')
-      await createChild(formData)
+  data() {
+    return {
+      showForm: false,
+      editingChild: null,
+      formLoading: false
     }
+  },
 
-    await fetchChildren() // Обновляем список после успешного действия
-    showForm.value = false // Закрываем модальное окно
-    editingChild.value = null // Сбрасываем редактируемый профиль
-  } catch (err) {
-    console.error('Error submitting form:', err)
-    // Можно добавить отображение ошибки пользователю
-  } finally {
-    formLoading.value = false
+  computed: {
+    children() {
+      const store = useChildrenStore()
+      return store.children.value
+    },
+    loading() {
+      const store = useChildrenStore()
+      return store.loading.value
+    },
+    error() {
+      const store = useChildrenStore()
+      return store.error.value
+    }
+  },
+
+  async created() {
+    const store = useChildrenStore()
+    await store.fetchChildren()
+  },
+
+  methods: {
+    showAddForm() {
+      this.editingChild = null
+      this.showForm = true
+    },
+
+    editChild(child) {
+      this.editingChild = {...child}
+      this.showForm = true
+    },
+
+    async deleteChild(id) {
+      if (confirm('Вы уверены, что хотите удалить этот профиль?')) {
+        try {
+          const store = useChildrenStore()
+          await store.deleteChild(id)
+        } catch (err) {
+          console.error('Error deleting child:', err)
+        }
+      }
+    },
+
+    async handleSubmit(formData) {
+      try {
+        this.formLoading = true
+        const store = useChildrenStore()
+
+        if (this.editingChild?.id) {
+          await store.updateChild(this.editingChild.id, formData)
+        } else {
+          await store.createChild(formData)
+        }
+
+        this.showForm = false
+        this.editingChild = null
+      } catch (err) {
+        console.error('Error submitting form:', err)
+      } finally {
+        this.formLoading = false
+      }
+    }
   }
 }
-
-async function deleteChild(id) {
-  if (confirm('Вы уверены, что хотите удалить этот профиль?')) {
-    try {
-      await removeChild(id)
-      await fetchChildren() // Обновляем список после удаления
-    } catch (err) {
-      console.error('Error deleting child:', err)
-    }
-  }
-}
-
-// Загружаем данные при монтировании
-onMounted(() => {
-  fetchChildren()
-})
 </script>

@@ -18,18 +18,23 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login
 
 @router.post("/login")
 async def login(
-        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-        db: Session = Depends(get_db)
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Session = Depends(get_db)
 ):
     """
     Вход в систему для получения токена доступа.
     Поддерживает как родителей, так и детей.
     """
+    print(f"Login attempt for email: {form_data.username}")  # Добавляем логирование
+
     user = user_crud.authenticate(
         db=db,
-        email=form_data.username,  # OAuth2 использует username, но мы используем email
+        email=form_data.username,
         password=form_data.password
     )
+
+    print(f"Authentication result: {user}")  # Логируем результат аутентификации
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -40,8 +45,12 @@ async def login(
     # Создаем access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.create_access_token(
-        user_id=user.id, role=user.role, expires_delta=access_token_expires
+        user_id=user.id,
+        role=user.role,
+        expires_delta=access_token_expires
     )
+
+    print(f"Generated token: {access_token}")  # Логируем сгенерированный токен
 
     return {
         "access_token": access_token,

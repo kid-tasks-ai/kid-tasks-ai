@@ -6,16 +6,17 @@
         <h2 class="text-xl font-semibold">Личная информация</h2>
       </div>
       <div class="mt-4">
-        <!-- Здесь будет форма профиля -->
         <p class="text-gray-500">Раздел в разработке</p>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-definePageMeta({
+
+<script>
+export default {
+  name: 'ParentProfilePage',
   layout: 'parent',
   middleware: ['parent']
-})
+}
 </script>

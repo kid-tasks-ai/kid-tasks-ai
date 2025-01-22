@@ -1,7 +1,9 @@
-export default defineNuxtRouteMiddleware((to, from) => {
-  const { token, role } = useAuth()
+import { useAuthStore } from '~/stores/auth'
 
-  if (!token.value || role.value !== 'parent') {
+export default defineNuxtRouteMiddleware((to, from) => {
+  const auth = useAuthStore()
+
+  if (!auth.isParent.value) {
     return navigateTo('/auth')
   }
 })

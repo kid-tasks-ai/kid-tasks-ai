@@ -54,24 +54,30 @@
   </div>
 </template>
 
-<script setup>
-definePageMeta({
+<script>
+export default {
+  name: 'TasksPage',
   layout: 'parent',
-  middleware: ['parent']
-})
+  middleware: ['parent'],
+  data() {
+    return {
+      isGenerating: false,
+      showFilters: false
+    }
+  },
 
-const isGenerating = ref(false)
-const showFilters = ref(false)
+  methods: {
+    generateTasks() {
+      this.isGenerating = true
+      // TODO: Implement task generation
+      setTimeout(() => {
+        this.isGenerating = false
+      }, 2000)
+    },
 
-function generateTasks() {
-  isGenerating.value = true
-  // TODO: Implement task generation
-  setTimeout(() => {
-    isGenerating.value = false
-  }, 2000)
-}
-
-function toggleFilters() {
-  showFilters.value = !showFilters.value
+    toggleFilters() {
+      this.showFilters = !this.showFilters
+    }
+  }
 }
 </script>

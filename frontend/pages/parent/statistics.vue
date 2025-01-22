@@ -84,77 +84,62 @@
   </div>
 </template>
 
-<script setup>
-definePageMeta({
+<script>
+export default {
+  name: 'StatisticsPage',
   layout: 'parent',
-  middleware: ['parent']
-})
-
-// Состояние и константы
-const completedTasks = ref(12)
-const claimedRewards = ref(5)
-const totalPoints = ref(450)
-const selectedPeriod = ref('month')
-const loading = ref(false)
-
-// Опции для выбора периода
-const periods = [
-  { value: 'week', label: 'Неделя' },
-  { value: 'month', label: 'Месяц' },
-  { value: 'year', label: 'Год' }
-]
-
-// Конфигурация таблицы
-const columns = [
-  {
-    key: 'date',
-    label: 'Дата'
+  middleware: ['parent'],
+  data() {
+    return {
+      completedTasks: 12,
+      claimedRewards: 5,
+      totalPoints: 450,
+      selectedPeriod: 'month',
+      loading: false,
+      periods: [
+        { value: 'week', label: 'Неделя' },
+        { value: 'month', label: 'Месяц' },
+        { value: 'year', label: 'Год' }
+      ],
+      columns: [
+        { key: 'date', label: 'Дата' },
+        { key: 'child', label: 'Ребёнок' },
+        { key: 'type', label: 'Тип' },
+        { key: 'description', label: 'Описание' }
+      ],
+      activities: [
+        {
+          date: new Date('2025-01-20'),
+          child: 'Анна',
+          type: 'task',
+          description: 'Выполнено задание "Прочитать главу книги"'
+        },
+        {
+          date: new Date('2025-01-19'),
+          child: 'Михаил',
+          type: 'reward',
+          description: 'Получена награда "Поход в кино"'
+        }
+      ]
+    }
   },
-  {
-    key: 'child',
-    label: 'Ребёнок'
-  },
-  {
-    key: 'type',
-    label: 'Тип'
-  },
-  {
-    key: 'description',
-    label: 'Описание'
+
+  methods: {
+    formatDate(date) {
+      return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(date)
+    },
+
+    getActivityColor(type) {
+      return type === 'task' ? 'blue' : 'purple'
+    },
+
+    getActivityLabel(type) {
+      return type === 'task' ? 'Задание' : 'Награда'
+    }
   }
-]
-
-// Демо-данные для таблицы
-const activities = [
-  {
-    date: new Date('2025-01-20'),
-    child: 'Анна',
-    type: 'task',
-    description: 'Выполнено задание "Прочитать главу книги"'
-  },
-  {
-    date: new Date('2025-01-19'),
-    child: 'Михаил',
-    type: 'reward',
-    description: 'Получена награда "Поход в кино"'
-  },
-  // Добавьте больше демо-записей при необходимости
-]
-
-// Вспомогательные функции
-function formatDate(date) {
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).format(date)
-}
-
-function getActivityColor(type) {
-  return type === 'task' ? 'blue' : 'purple'
-}
-
-function getActivityLabel(type) {
-  return type === 'task' ? 'Задание' : 'Награда'
 }
 </script>

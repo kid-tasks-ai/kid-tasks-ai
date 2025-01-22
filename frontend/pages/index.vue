@@ -7,20 +7,24 @@
   </div>
 </template>
 
-<script setup>
+<script>
+import { useAuthStore } from '~/stores/auth'
+
 definePageMeta({
   middleware: ['guest']
 })
 
-// Автоматическое перенаправление при загрузке страницы
-onMounted(() => {
-  const { token, role } = useAuth()
+export default {
+  name: 'IndexPage',
 
-  if (!token.value) {
-    navigateTo('/auth')
-  } else {
-    // Перенаправление в зависимости от роли пользователя
-    navigateTo(role.value === 'parent' ? '/parent' : '/child')
+  mounted() {
+    const auth = useAuthStore()
+
+    if (!auth.token.value) {
+      this.$router.push('/auth')
+    } else {
+      this.$router.push(auth.role.value === 'parent' ? '/parent' : '/child')
+    }
   }
-})
+}
 </script>

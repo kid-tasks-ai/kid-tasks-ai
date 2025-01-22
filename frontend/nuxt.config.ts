@@ -1,9 +1,24 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-20',
   modules: [
-    '@nuxtjs/tailwindcss',
-    '@nuxt/ui'  
+    '@nuxt/ui',
+    '@nuxtjs/tailwindcss'
   ],
+  css: [
+    '@/assets/css/main.css'
+  ],
+  build: {
+    transpile: ['@nuxt/ui']
+  },
+  devtools: {
+    enabled: true
+  },
+  postcss: {
+    plugins: {
+      tailwindcss: {},
+      autoprefixer: {},
+    },
+  },
   app: {
     head: {
       title: 'KidTasks AI',
@@ -34,11 +49,14 @@ export default defineNuxtConfig({
     }
   },
   ui: {
-    icons: ['heroicons']
+    global: true,
+    icons: ['heroicons'],
+    primary: 'blue',
+    gray: 'cool'
   },
   tailwindcss: {
     configPath: '~/tailwind.config.ts',
     exposeConfig: true,
     viewer: process.env.NODE_ENV === 'development'
-  },
+  }
 })

@@ -1,7 +1,8 @@
+import { useAuthStore } from '~/stores/auth'
 export default defineNuxtRouteMiddleware((to, from) => {
-  const { token, role } = useAuth()
+  const auth = useAuthStore()
 
-  if (token.value && role.value) {
-    return navigateTo(role.value === 'parent' ? '/parent' : '/child')
+  if (auth.isAuthenticated.value) {
+    return navigateTo(auth.isParent.value ? '/parent' : '/child')
   }
 })

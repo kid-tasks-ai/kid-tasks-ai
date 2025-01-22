@@ -17,6 +17,7 @@
           placeholder="Введите email"
           :error="errors.email"
           required
+          :disabled="isEditing"
       />
     </UFormGroup>
 
@@ -28,6 +29,9 @@
           :error="errors.password"
           :required="!isEditing"
       />
+      <template v-if="isEditing" #help>
+        <span class="text-sm text-gray-500">Оставьте пустым, чтобы не менять пароль</span>
+      </template>
     </UFormGroup>
 
     <UFormGroup label="Возраст" required>
@@ -47,6 +51,7 @@
           v-model="form.interests"
           placeholder="Опишите интересы ребенка"
           :error="errors.interests"
+          rows="3"
       />
     </UFormGroup>
 
@@ -55,10 +60,11 @@
           v-model="form.preferences"
           placeholder="Укажите предпочтения ребенка"
           :error="errors.preferences"
+          rows="3"
       />
     </UFormGroup>
 
-    <div class="flex justify-end gap-2 mt-4">
+    <div class="flex justify-end gap-2 mt-6">
       <UButton
           type="button"
           variant="ghost"
@@ -118,52 +124,20 @@ export default {
     }
   },
 
+  mounted() {
+    this.initForm()
+  },
+
   watch: {
-    initialData: {
-      handler(newData) {
-        this.form = {
-          name: '',
-          email: '',
-          password: '',
-          age: 0,
-          interests: '',
-          preferences: '',
-          ...(newData || {})
-        }
-      },
-      deep: true
+    'initialData.id'(newId, oldId) {
+      if (newId !== oldId) {
+        this.initForm()
+      }
     }
   },
 
-  mounted() {
-    this.resetForm()
-  },
-
   methods: {
-    handleSubmit() {
-      const formData = { ...this.form }
-
-      // Преобразуем age в число
-      if (formData.age) {
-        formData.age = parseInt(String(formData.age))
-      }
-
-      // Удаляем пустой пароль при редактировании
-      if (this.isEditing && !formData.password) {
-        delete formData.password
-      }
-
-      // Очищаем пустые строки
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value === '') {
-          formData[key] = null
-        }
-      })
-
-      this.$emit('submit', formData)
-    },
-
-    resetForm() {
+    initForm() {
       this.form = {
         name: '',
         email: '',
@@ -174,6 +148,32 @@ export default {
         ...(this.initialData || {})
       }
       this.errors = {}
+    },
+
+    handleSubmit() {
+      const formData = { ...this.form }
+
+      // Преобразуем age в число
+      if (formData.age) {
+        formData.age = parseInt(String(formData.age))
+      }
+
+      // При редактировании не отправляем email и пустой пароль
+      if (this.isEditing) {
+        delete formData.email
+        if (!formData.password) {
+          delete formData.password
+        }
+      }
+
+      // Очищаем пустые строки
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value === '') {
+          formData[key] = null
+        }
+      })
+
+      this.$emit('submit', formData)
     }
   }
 }

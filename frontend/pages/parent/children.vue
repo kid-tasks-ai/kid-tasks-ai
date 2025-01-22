@@ -2,15 +2,29 @@
   <div>
     <h1 class="text-2xl font-semibold mb-6">Управление профилями детей</h1>
 
-    <!-- Сообщение об ошибке -->
+    <!-- Общее сообщение об ошибке -->
     <UAlert
-        v-if="error"
+        v-if="pageError"
         title="Ошибка"
-        :description="error"
+        :description="pageError"
         color="red"
         variant="soft"
         class="mb-4"
-    />
+        :icon="false"
+    >
+      <template #footer>
+        <div class="flex justify-end">
+          <UButton
+              variant="ghost"
+              color="red"
+              size="sm"
+              @click="pageError = null"
+          >
+            Закрыть
+          </UButton>
+        </div>
+      </template>
+    </UAlert>
 
     <!-- Карточка со списком детей -->
     <div v-if="loading" class="flex justify-center py-8">
@@ -46,17 +60,33 @@
       Добавить ребенка
     </UButton>
 
-    <!-- Модальное окно формы -->
-    <UModal v-model="showForm">
+    <UModal
+        :model-value="showForm"
+        @update:model-value="handleModelUpdate"
+    >
       <template #default>
-        <h2 class="text-lg font-medium mb-4">
-          {{ editingChild ? 'Редактировать профиль' : 'Добавить ребенка' }}
-        </h2>
-        <ChildForm
-            :initial-data="editingChild || {}"
-            :loading="formLoading"
-            @submit="handleSubmit"
-        />
+        <div class="p-4">
+          <h2 class="text-lg font-medium mb-4">
+            {{ editingChild ? 'Редактировать профиль' : 'Добавить ребенка' }}
+          </h2>
+
+          <!-- Сообщение об ошибке в модальном окне -->
+          <UAlert
+              v-if="formError"
+              title="Ошибка"
+              :description="formError"
+              color="red"
+              variant="soft"
+              class="mb-4"
+          />
+
+          <ChildForm
+              :initial-data="editingChild || {}"
+              :loading="formLoading"
+              @submit="handleSubmit"
+              @cancel="handleModalClose"
+          />
+        </div>
       </template>
     </UModal>
   </div>
@@ -80,7 +110,9 @@ export default {
     return {
       showForm: false,
       editingChild: null,
-      formLoading: false
+      formLoading: false,
+      formError: null,
+      pageError: null, // добавляем для общих ошибок страницы
     }
   },
 
@@ -92,27 +124,40 @@ export default {
     loading() {
       const store = useChildrenStore()
       return store.loading.value
-    },
-    error() {
-      const store = useChildrenStore()
-      return store.error.value
     }
   },
 
   async created() {
     const store = useChildrenStore()
-    await store.fetchChildren()
+    try {
+      await store.fetchChildren()
+    } catch (err) {
+      console.error('Error fetching children:', err)
+      this.pageError = 'Не удалось загрузить список детей. Попробуйте обновить страницу.'
+    }
   },
 
   methods: {
+    // Обновим существующие методы для сброса pageError
     showAddForm() {
+      this.formError = null
+      this.pageError = null
       this.editingChild = null
       this.showForm = true
     },
 
     editChild(child) {
+      this.formError = null
+      this.pageError = null
       this.editingChild = {...child}
       this.showForm = true
+    },
+
+    handleModalClose() {
+      this.showForm = false
+      this.editingChild = null
+      this.formError = null
+      // pageError не сбрасываем здесь, так как это ошибка страницы
     },
 
     async deleteChild(id) {
@@ -120,8 +165,10 @@ export default {
         try {
           const store = useChildrenStore()
           await store.deleteChild(id)
+          this.pageError = null // Сбрасываем ошибку при успехе
         } catch (err) {
           console.error('Error deleting child:', err)
+          this.pageError = 'Не удалось удалить профиль. Попробуйте еще раз.'
         }
       }
     },
@@ -129,6 +176,7 @@ export default {
     async handleSubmit(formData) {
       try {
         this.formLoading = true
+        this.formError = null
         const store = useChildrenStore()
 
         if (this.editingChild?.id) {
@@ -137,12 +185,23 @@ export default {
           await store.createChild(formData)
         }
 
-        this.showForm = false
-        this.editingChild = null
+        this.handleModalClose() // Закрываем только при успешном сохранении
       } catch (err) {
         console.error('Error submitting form:', err)
+        this.formError = err?.data?.detail || 'Произошла ошибка при сохранении данных'
       } finally {
         this.formLoading = false
+      }
+    },
+
+    handleModelUpdate(value) {
+      if (!value) { // Если модальное окно закрывается
+        // Проверяем, нет ли ошибок и не идет ли загрузка
+        if (!this.formError && !this.formLoading) {
+          this.handleModalClose()
+        }
+      } else {
+        this.showForm = value
       }
     }
   }

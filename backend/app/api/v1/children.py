@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -10,28 +10,37 @@ from app.schemas.user import UserResponse
 router = APIRouter()
 
 
-@router.post("", response_model=ChildResponse)
+@router.post("", response_model=ChildResponse, status_code=status.HTTP_201_CREATED)
 async def create_child_profile(
         child_data: ChildCreate,
         db: Session = Depends(get_db),
         current_user: UserResponse = Depends(get_current_user)
 ):
-    """Создание профиля ребенка"""
+    """Create a new child profile"""
+    # Check if user is a parent
     if current_user.role != "parent":
         raise HTTPException(
-            status_code=403,
-            detail="Только родители могут создавать профили детей"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only parents can create child profiles"
         )
 
-    # Проверяем, не занят ли email
-    existing_user = child_crud.get_user_by_email(db, email=child_data.email)
-    if existing_user:
+    try:
+        # Check if email is already registered
+        existing_user = child_crud.get_user_by_email(db, email=child_data.email)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email is already registered"
+            )
+
+        # Create child profile
+        child = child_crud.create_child(db, child_data, current_user.id)
+        return child
+    except Exception as e:
         raise HTTPException(
-            status_code=400,
-            detail="Email уже зарегистрирован"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
-
-    return child_crud.create_child(db, child_data, current_user.id)
 
 
 @router.get("", response_model=List[ChildResponse])
@@ -39,14 +48,20 @@ async def get_children_profiles(
         db: Session = Depends(get_db),
         current_user: UserResponse = Depends(get_current_user)
 ):
-    """Получение списка профилей детей текущего родителя"""
+    """Get all child profiles for the current parent"""
     if current_user.role != "parent":
         raise HTTPException(
-            status_code=403,
-            detail="Доступно только для родителей"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access restricted to parents"
         )
 
-    return child_crud.get_children(db, current_user.id)
+    try:
+        return child_crud.get_children(db, current_user.id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 @router.get("/{child_id}", response_model=ChildResponse)
@@ -55,18 +70,18 @@ async def get_child_profile(
         db: Session = Depends(get_db),
         current_user: UserResponse = Depends(get_current_user)
 ):
-    """Получение информации о конкретном профиле ребенка"""
+    """Get a specific child profile"""
     if current_user.role != "parent":
         raise HTTPException(
-            status_code=403,
-            detail="Доступно только для родителей"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access restricted to parents"
         )
 
     child = child_crud.get_child(db, child_id, current_user.id)
     if not child:
         raise HTTPException(
-            status_code=404,
-            detail="Профиль ребенка не найден"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Child profile not found"
         )
 
     return child
@@ -79,41 +94,52 @@ async def update_child_profile(
         db: Session = Depends(get_db),
         current_user: UserResponse = Depends(get_current_user)
 ):
-    """Обновление профиля ребенка"""
+    """Update a child profile"""
     if current_user.role != "parent":
         raise HTTPException(
-            status_code=403,
-            detail="Доступно только для родителей"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access restricted to parents"
         )
 
-    updated_child = child_crud.update_child(db, child_id, current_user.id, child_data)
-    if not updated_child:
+    try:
+        updated_child = child_crud.update_child(
+            db, child_id, current_user.id, child_data
+        )
+        if not updated_child:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Child profile not found"
+            )
+        return updated_child
+    except Exception as e:
         raise HTTPException(
-            status_code=404,
-            detail="Профиль ребенка не найден"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
 
-    return updated_child
 
-
-@router.delete("/{child_id}")
+@router.delete("/{child_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_child_profile(
         child_id: int,
         db: Session = Depends(get_db),
         current_user: UserResponse = Depends(get_current_user)
 ):
-    """Удаление профиля ребенка"""
+    """Delete a child profile"""
     if current_user.role != "parent":
         raise HTTPException(
-            status_code=403,
-            detail="Доступно только для родителей"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access restricted to parents"
         )
 
-    success = child_crud.delete_child(db, child_id, current_user.id)
-    if not success:
+    try:
+        success = child_crud.delete_child(db, child_id, current_user.id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Child profile not found"
+            )
+    except Exception as e:
         raise HTTPException(
-            status_code=404,
-            detail="Профиль ребенка не найден"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
-
-    return {"status": "success", "message": "Профиль ребенка удален"}

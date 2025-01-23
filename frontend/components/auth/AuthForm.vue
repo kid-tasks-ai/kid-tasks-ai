@@ -110,10 +110,8 @@ export default {
           const role = await auth.login(this.formData.email, this.formData.password)
           this.$router.push(role === 'parent' ? '/parent' : '/child')
         } else {
-          await auth.register(this.formData)
-          this.isLogin = true
-          this.formData.password = ''
-          this.formData.name = ''
+          const role = await auth.register(this.formData)
+          this.$router.push(role === 'parent' ? '/parent' : '/child')
         }
       } catch (err) {
         console.error('Auth error:', err)

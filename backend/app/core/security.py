@@ -31,19 +31,37 @@ def get_password_hash(password: str) -> str:
 
 
 def create_access_token(user_id: int, role: str, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = {"user_id": user_id, "role": role}
+    to_encode = {"user_id": user_id, "role": role, "type": "access"}
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
+def create_refresh_token(user_id: int, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = {"user_id": user_id, "type": "refresh"}
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=30)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+def verify_refresh_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Could not validate refresh token")
 
 async def get_current_user(
-        token: Annotated[str, Depends(oauth2_scheme)],
-        db: Annotated[get_db, Depends()]
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[get_db, Depends()]
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -52,6 +70,8 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "access":
+            raise credentials_exception
         user_id: int = payload.get("user_id")
         if user_id is None:
             raise credentials_exception

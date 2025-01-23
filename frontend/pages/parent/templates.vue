@@ -1,14 +1,35 @@
+<!-- pages/parent/templates.vue -->
 <template>
   <div>
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-semibold">Шаблоны заданий</h1>
-      <UButton
-          color="primary"
-          icon="i-heroicons-plus"
-          @click="showCreateForm"
-      >
-        Создать шаблон
-      </UButton>
+      <div class="flex gap-3">
+        <!-- Генератор задач -->
+        <UButton
+            color="purple"
+            variant="solid"
+            icon="i-heroicons-sparkles"
+            :loading="isGenerating"
+            :disabled="!filters.childId"
+            @click="openGenerator"
+            class="relative group"
+        >
+          <div class="flex items-center gap-2">
+            <span>AI Генератор</span>
+            <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+          </div>
+        </UButton>
+
+        <!-- Обычное добавление -->
+        <UButton
+            color="primary"
+            icon="i-heroicons-plus"
+            @click="showCreateForm"
+            :disabled="!filters.childId"
+        >
+          Добавить шаблон
+        </UButton>
+      </div>
     </div>
 
     <!-- Фильтры -->
@@ -28,10 +49,10 @@
           <USelect
               v-model="filters.status"
               :options="[
-              { label: 'Все', value: null },
-              { label: 'Активные', value: true },
-              { label: 'Неактивные', value: false }
-            ]"
+                { label: 'Все', value: null },
+                { label: 'Активные', value: true },
+                { label: 'Неактивные', value: false }
+              ]"
               option-attribute="label"
               value-attribute="value"
               @change="loadTemplates"
@@ -63,10 +84,17 @@
 
     <div v-else>
       <!-- Пустое состояние -->
-      <div v-if="templates.length === 0" class="mb-6">
+      <div v-if="!filters.childId" class="mb-6">
+        <UAlert
+            title="Выберите ребёнка"
+            description="Для просмотра шаблонов заданий выберите ребёнка"
+            icon="i-heroicons-information-circle"
+        />
+      </div>
+      <div v-else-if="templates.length === 0" class="mb-6">
         <UAlert
             title="Нет шаблонов"
-            description="Создайте первый шаблон задания для ваших детей"
+            description="Создайте первый шаблон задания для вашего ребёнка"
             icon="i-heroicons-information-circle"
         />
       </div>
@@ -78,14 +106,6 @@
             <div class="space-y-2">
               <div class="flex items-center gap-2">
                 <h3 class="text-lg font-medium">{{ template.title }}</h3>
-                <UBadge
-                    v-if="template.category"
-                    color="gray"
-                    variant="subtle"
-                    size="sm"
-                >
-                  {{ template.category }}
-                </UBadge>
                 <UBadge
                     :color="template.is_active ? 'green' : 'gray'"
                     variant="subtle"
@@ -128,29 +148,40 @@
     <!-- Модальное окно создания/редактирования -->
     <UModal
         :model-value="showForm"
-        @close="closeForm"
+        :prevent-close="formLoading"
     >
-      <UCard>
-        <template #header>
-          <h3 class="text-lg font-medium">
+      <template #default>
+        <div class="p-4">
+          <h2 class="text-lg font-medium mb-4">
             {{ editingTemplate ? 'Редактирование шаблона' : 'Новый шаблон' }}
-          </h3>
-        </template>
-        <!-- Здесь будет форма -->
-      </UCard>
+          </h2>
+
+          <TemplateForm
+              :initial-data="editingTemplate || {}"
+              :child-id="filters.childId"
+              :loading="formLoading"
+              @submit="handleFormSubmit"
+              @cancel="handleModalClose"
+          />
+        </div>
+      </template>
     </UModal>
   </div>
 </template>
 
-<script lang="ts">
+<script>
 import { useChildrenStore } from '~/stores/children'
 import { useTemplatesStore } from '~/stores/templates'
-import type { Template } from '~/types/templates'
+import TemplateForm from '~/components/tasks/TemplateForm.vue'
 
 export default {
   name: 'TemplatesPage',
   layout: 'parent',
   middleware: ['parent'],
+
+  components: {
+    TemplateForm
+  },
 
   setup() {
     const templatesStore = useTemplatesStore()
@@ -161,67 +192,62 @@ export default {
 
   data() {
     return {
-      children: [],
-
       filters: {
-        childId: null as number | null,
-
-        status: null as boolean | null
+        childId: null,
+        status: null
       },
       showForm: false,
-      editingTemplate: null as Template | null,
-      formLoading: false
-    }
-  },
-
-  computed: {
-    templates() {
-      return this.templatesStore.templates.value
+      editingTemplate: null,
+      formLoading: false,
+      templates: [],
+      children: [],
+      isGenerating: false
     }
   },
 
   async created() {
-    try {
-      await this.loadChildren()
-      // Загружаем шаблоны только если есть выбранный ребенок
-      if (this.children?.length) {
-        this.filters.childId = this.children[0].id
-        await this.loadTemplates()
-      }
-    } catch (err) {
-      console.error('Error in created hook:', err)
-    }
+    await this.loadChildren()
   },
 
   methods: {
-    async loadChildren() {
-      try {
-        const store = useChildrenStore()
-        await store.fetchChildren()
-        this.children = store.children.value
-      } catch (err) {
-        console.error('Error loading children:', err)
-      }
-    },
-
     async loadTemplates() {
       try {
-        await this.templatesStore.fetchTemplates(this.filters)
+        if (!this.filters.childId) {
+          this.templates = []
+          return
+        }
+
+        await this.templatesStore.fetchTemplates({
+          childId: this.filters.childId,
+          status: this.filters.status !== null ? String(this.filters.status) : null
+        })
+
+        this.templates = this.templatesStore.templates.value
       } catch (err) {
         console.error('Error loading templates:', err)
       }
     },
 
-    resetFilters() {
-      this.filters = {
-        childId: null,
-        category: null,
-        status: null
+    async loadChildren() {
+      try {
+        const store = useChildrenStore()
+        await store.fetchChildren()
+        this.children = store.children.value
+        if (this.children.length > 0) {
+          this.filters.childId = this.children[0].id
+          await this.loadTemplates()
+        }
+      } catch (err) {
+        console.error('Error loading children:', err)
       }
+    },
+
+    resetFilters() {
+      this.filters.status = null
       this.loadTemplates()
     },
 
-    getScheduleText(template: Template) {
+    getScheduleText(template) {
       const types = {
         once: 'Единоразово',
         daily: 'Ежедневно',
@@ -231,29 +257,65 @@ export default {
     },
 
     showCreateForm() {
+      if (!this.filters.childId) {
+        return
+      }
       this.editingTemplate = null
       this.showForm = true
     },
 
-    editTemplate(template: Template) {
+    editTemplate(template) {
       this.editingTemplate = { ...template }
       this.showForm = true
     },
 
-    closeForm() {
+    handleModalClose() {
       if (!this.formLoading) {
         this.showForm = false
         this.editingTemplate = null
       }
     },
 
-    async confirmDelete(template: Template) {
+    async confirmDelete(template) {
       if (await confirm(`Удалить шаблон "${template.title}"?`)) {
         try {
           await this.templatesStore.deleteTemplate(template.id)
+          await this.loadTemplates()
         } catch (err) {
           console.error('Error deleting template:', err)
         }
+      }
+    },
+
+    async handleFormSubmit(formData) {
+      try {
+        this.formLoading = true
+
+        if (this.editingTemplate?.id) {
+          await this.templatesStore.updateTemplate(this.editingTemplate.id, formData)
+        } else {
+          await this.templatesStore.createTemplate(formData)
+        }
+
+        await this.loadTemplates()
+        this.showForm = false
+        this.editingTemplate = null
+      } catch (err) {
+        console.error('Error saving template:', err)
+      } finally {
+        this.formLoading = false
+      }
+    },
+    async openGenerator() {
+      if (!this.filters.childId) return;
+      // TODO: Здесь будет открываться модальное окно генератора
+      this.isGenerating = true;
+      try {
+        // Заглушка для демонстрации анимации загрузки
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        // TODO: Реализовать генерацию
+      } finally {
+        this.isGenerating = false;
       }
     }
   }

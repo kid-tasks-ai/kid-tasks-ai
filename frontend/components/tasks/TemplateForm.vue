@@ -15,7 +15,7 @@
           v-model="form.description"
           placeholder="Опишите задание"
           :error="errors.description"
-          rows="3"
+          :rows="3"
           required
       />
     </UFormGroup>
@@ -112,7 +112,6 @@ export default {
       form: {
         title: '',
         description: '',
-
         points_value: 1,
         schedule_type: 'once',
         schedule_settings: {},
@@ -167,7 +166,6 @@ export default {
       this.form = {
         title: data.title || '',
         description: data.description || '',
-
         points_value: data.points_value || 1,
         schedule_type: data.schedule_type || 'once',
         schedule_settings: data.schedule_settings || {},

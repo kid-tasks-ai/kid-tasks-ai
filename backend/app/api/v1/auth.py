@@ -75,7 +75,7 @@ async def refresh_token(
             )
 
         # Создаем новые токены
-        access_token_expires = timedelta(minutes=30)
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         refresh_token_expires = timedelta(days=30)
 
         access_token = security.create_access_token(

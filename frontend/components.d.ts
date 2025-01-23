@@ -9,6 +9,8 @@ declare module "@vue/runtime-core" {
         USelect: typeof import('@nuxt/ui')['USelect']
         UProgress: typeof import('@nuxt/ui')['UProgress']
         UModal: typeof import('@nuxt/ui')['UModal']
+        UBadge: typeof import('@nuxt/ui')['UBadge']
+        UIcon: typeof import('@nuxt/ui')['UIcon']
     }
 }
 

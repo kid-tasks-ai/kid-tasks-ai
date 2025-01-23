@@ -1,20 +1,24 @@
 // stores/auth.js
 export const useAuthStore = () => {
     const token = useState('auth_token', () => localStorage.getItem('auth_token'))
+    const refreshToken = useState('refresh_token', () => localStorage.getItem('refresh_token'))
     const role = useState('auth_role', () => localStorage.getItem('auth_role'))
 
-    // Actions
-    const setAuth = (newToken, newRole) => {
+    const setAuth = (newToken, newRefreshToken, newRole) => {
         token.value = newToken
+        refreshToken.value = newRefreshToken
         role.value = newRole
         localStorage.setItem('auth_token', newToken)
+        localStorage.setItem('refresh_token', newRefreshToken)
         localStorage.setItem('auth_role', newRole)
     }
 
     const clearAuth = () => {
         token.value = null
+        refreshToken.value = null
         role.value = null
         localStorage.removeItem('auth_token')
+        localStorage.removeItem('refresh_token')
         localStorage.removeItem('auth_role')
     }
 
@@ -31,36 +35,41 @@ export const useAuthStore = () => {
         })
 
         if (response?.access_token) {
-            setAuth(response.access_token, response.role)
+            setAuth(response.access_token, response.refresh_token, response.role)
             return response.role
         }
         throw new Error('Ошибка авторизации')
     }
 
-    const register = async (userData) => {
+    const refreshAuth = async () => {
+        if (!refreshToken.value) {
+            throw new Error('Нет refresh токена')
+        }
+
         const config = useRuntimeConfig()
-        return await $fetch('/api/v1/auth/register', {
+        const response = await $fetch('/api/v1/auth/refresh', {
             baseURL: config.public.apiBase,
             method: 'POST',
-            body: userData,
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            body: { refresh_token: refreshToken.value }
         })
+
+        if (response?.access_token) {
+            setAuth(response.access_token, response.refresh_token, role.value)
+        } else {
+            throw new Error('Не удалось обновить токен')
+        }
     }
 
     return {
-        // State
         token,
+        refreshToken,
         role,
-        // Getters
         isAuthenticated: computed(() => !!token.value),
         isParent: computed(() => role.value === 'parent'),
         isChild: computed(() => role.value === 'child'),
-        // Actions
         setAuth,
         clearAuth,
         login,
-        register
+        refreshAuth
     }
 }

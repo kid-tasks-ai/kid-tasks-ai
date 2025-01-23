@@ -127,6 +127,18 @@
               </div>
             </div>
             <div class="flex items-start gap-2">
+              <!-- Добавляем кнопку назначения -->
+              <UButton
+                  v-if="template.is_active"
+                  icon="i-heroicons-play"
+                  color="blue"
+                  variant="soft"
+                  :loading="template.id === assigningTemplateId"
+                  @click="assignTemplate(template)"
+                  :disabled="!template.is_active"
+              >
+                Назначить
+              </UButton>
               <UButton
                   icon="i-heroicons-pencil-square"
                   color="gray"
@@ -172,6 +184,7 @@
 <script>
 import { useChildrenStore } from '~/stores/children'
 import { useTemplatesStore } from '~/stores/templates'
+import { useAssignmentsStore } from '~/stores/assignments'  // Добавляем импорт
 import TemplateForm from '~/components/tasks/TemplateForm.vue'
 
 export default {
@@ -185,8 +198,10 @@ export default {
 
   setup() {
     const templatesStore = useTemplatesStore()
+    const assignmentsStore = useAssignmentsStore()
     return {
-      templatesStore
+      templatesStore,
+      assignmentsStore
     }
   },
 
@@ -201,7 +216,8 @@ export default {
       formLoading: false,
       templates: [],
       children: [],
-      isGenerating: false
+      isGenerating: false,
+      assigningTemplateId: null
     }
   },
 
@@ -317,7 +333,32 @@ export default {
       } finally {
         this.isGenerating = false;
       }
-    }
+    },
+    async assignTemplate(template) {
+      if (!template.is_active) return
+
+      try {
+        this.assigningTemplateId = template.id
+        await this.assignmentsStore.createFromTemplate(template.id)
+
+        const { $notify } = useNuxtApp()
+
+        // Если шаблон одноразовый, обновляем список после назначения
+        if (template.schedule_type === 'once') {
+          await this.loadTemplates()
+        }
+
+        // Показываем уведомление об успехе
+        $notify.success('Задание назначено')
+
+      } catch (err) {
+        console.error('Error assigning template:', err)
+        // Показываем уведомление об ошибке
+        $notify.error('Не удалось назначить задание')
+      } finally {
+        this.assigningTemplateId = null
+      }
+    },
   }
 }
 </script>

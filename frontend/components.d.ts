@@ -11,6 +11,7 @@ declare module "@vue/runtime-core" {
         UModal: typeof import('@nuxt/ui')['UModal']
         UBadge: typeof import('@nuxt/ui')['UBadge']
         UIcon: typeof import('@nuxt/ui')['UIcon']
+        UNotifications: typeof import('@nuxt/ui')['UNotifications']
     }
 }
 

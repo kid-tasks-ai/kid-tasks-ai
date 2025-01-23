@@ -36,7 +36,7 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    access_token_expires = timedelta(minutes=30)  # Уменьшаем время жизни access токена
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)  # Уменьшаем время жизни access токена
     refresh_token_expires = timedelta(days=30)  # Долгоживущий refresh токен
 
     access_token = security.create_access_token(
@@ -109,3 +109,39 @@ async def verify_token(
 ):
     """Эндпоинт для проверки валидности токена"""
     return {"status": "valid"}
+
+
+@router.post("/register", response_model=TokenResponse)
+async def register(
+        user_in: UserCreate,
+        db: Session = Depends(get_db)
+):
+    user = user_crud.get_user_by_email(db, email=user_in.email)
+    if user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email уже зарегистрирован"
+        )
+    user = user_crud.create_user(db=db, user=user_in)
+
+    # Создаем токены сразу после регистрации
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    refresh_token_expires = timedelta(days=30)
+
+    access_token = security.create_access_token(
+        user_id=user.id,
+        role=user.role,
+        expires_delta=access_token_expires
+    )
+
+    refresh_token = security.create_refresh_token(
+        user_id=user.id,
+        expires_delta=refresh_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "role": user.role
+    }

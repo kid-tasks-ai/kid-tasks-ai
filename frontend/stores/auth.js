@@ -60,6 +60,20 @@ export const useAuthStore = () => {
         }
     }
 
+    const register = async (userData) => {
+        const config = useRuntimeConfig()
+        const response = await $fetch('/api/v1/auth/register', {
+            baseURL: config.public.apiBase,
+            method: 'POST',
+            body: userData
+        })
+
+        if (response?.access_token) {
+            setAuth(response.access_token, response.refresh_token, response.role)
+            return response.role
+        }
+        throw new Error('Ошибка регистрации')
+    }
     return {
         token,
         refreshToken,
@@ -70,6 +84,7 @@ export const useAuthStore = () => {
         setAuth,
         clearAuth,
         login,
+        register,
         refreshAuth
     }
 }

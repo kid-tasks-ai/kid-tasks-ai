@@ -1,0 +1,2 @@
+class TasksDBException(Exception):
+    pass

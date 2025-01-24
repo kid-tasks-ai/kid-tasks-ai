@@ -73,13 +73,13 @@ async def get_current_user(
         if payload.get("type") != "access":
             raise credentials_exception
         user_id: int = payload.get("user_id")
-        if user_id is None:
+        role: str = payload.get("role")
+        if user_id is None or role is None:
             raise credentials_exception
-        token_data = TokenData(user_id=user_id, role=payload.get("role"))
     except JWTError:
         raise credentials_exception
 
-    user = user_crud.get_user(db, user_id=token_data.user_id)
+    user = user_crud.get_user(db, user_id=user_id, role=role)
     if user is None:
         raise credentials_exception
     return user

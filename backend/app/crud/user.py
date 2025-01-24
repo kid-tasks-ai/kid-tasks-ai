@@ -4,12 +4,12 @@ from app.core.security import get_password_hash, verify_password
 from app.models.user import User, Child
 from app.schemas.user import UserCreate
 
-def get_user(db: Session, user_id: int):
-    """Get user by ID from either Users or Children table"""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        user = db.query(Child).filter(Child.id == user_id).first()
-    return user
+
+def get_user(db: Session, user_id: int, role: str):
+    if role == "child":
+        return db.query(Child).filter(Child.id == user_id).first()
+    else:
+        return db.query(User).filter(User.id == user_id).first()
 
 def get_user_by_email(db: Session, email: str):
     """Get user by email from either Users or Children table"""

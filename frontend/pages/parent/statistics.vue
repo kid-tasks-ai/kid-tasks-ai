@@ -85,10 +85,14 @@
 </template>
 
 <script>
+
+definePageMeta({
+  middleware: ['parent']
+})
+
 export default {
   name: 'StatisticsPage',
   layout: 'parent',
-  middleware: ['parent'],
   data() {
     return {
       completedTasks: 12,

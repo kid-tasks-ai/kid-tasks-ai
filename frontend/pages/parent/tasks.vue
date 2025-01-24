@@ -178,10 +178,13 @@
 import { useChildrenStore } from '~/stores/children'
 import { useAssignmentsStore } from '~/stores/assignments'
 
+definePageMeta({
+  middleware: ['parent']
+})
+
 export default {
   name: 'TasksPage',
   layout: 'parent',
-  middleware: ['parent'],
 
   data() {
     return {

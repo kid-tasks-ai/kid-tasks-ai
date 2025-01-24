@@ -98,10 +98,13 @@ import { useChildrenStore } from '~/stores/children'
 import ChildCard from '~/components/children/ChildCard.vue'
 import ChildForm from '~/components/children/ChildForm.vue'
 
+definePageMeta({
+  middleware: ['parent']
+})
+
 export default {
   name: 'ChildrenPage',
   layout: 'parent',
-  middleware: ['parent'],
   components: {
     ChildCard,
     ChildForm

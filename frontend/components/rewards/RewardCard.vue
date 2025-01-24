@@ -17,11 +17,11 @@
     <div class="space-y-4">
       <p class="text-gray-600">{{ reward.description }}</p>
 
-      <!-- Прогресс и стоимость -->
-      <div class="space-y-2">
+      <!-- Стоимость -->
+      <div v-if="!reward.is_redeemed" class="space-y-2">
         <div class="flex justify-between items-center text-sm">
           <span class="font-medium">
-            {{ currentPoints }} / {{ reward.points_cost }} баллов
+            {{ displayPoints }} / {{ reward.points_cost }} баллов
           </span>
           <span class="text-gray-500">{{ progressPercent }}%</span>
         </div>
@@ -29,8 +29,11 @@
         <UProgress
             :value="progressPercent"
             :color="hasEnoughPoints ? 'green' : 'blue'"
-            :class="{ 'animate-pulse': hasEnoughPoints && !reward.is_redeemed }"
+            :class="{ 'animate-pulse': hasEnoughPoints }"
         />
+      </div>
+      <div v-else class="text-sm">
+        <span class="font-medium">{{ reward.points_cost }} баллов</span>
       </div>
     </div>
 
@@ -80,6 +83,10 @@ export default {
   emits: ['redeem'],
 
   computed: {
+    displayPoints(): number {
+      return this.hasEnoughPoints ? this.reward.points_cost : this.currentPoints
+    },
+
     progressPercent(): number {
       return Math.min(Math.round((this.currentPoints / this.reward.points_cost) * 100), 100)
     },

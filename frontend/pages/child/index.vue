@@ -138,10 +138,13 @@
 <script lang="ts">
 import { useChildTasksStore, type TaskAssignment } from '~/stores/childTasks'
 
+definePageMeta({
+  middleware: ['child']
+})
+
 export default {
   name: 'ChildTasksPage',
   layout: 'child',
-  middleware: ['child'],
 
   setup() {
     const store = useChildTasksStore()

@@ -181,10 +181,13 @@
 import { useChildrenStore } from '~/stores/children'
 import { useRewardsStore } from '~/stores/rewards'
 
+definePageMeta({
+  middleware: ['parent']
+})
+
 export default {
   name: 'RewardsPage',
   layout: 'parent',
-  middleware: ['parent'],
 
   data() {
     return {

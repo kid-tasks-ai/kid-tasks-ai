@@ -14,9 +14,13 @@
 
 
 <script>
+
+definePageMeta({
+  middleware: ['parent']
+})
+
 export default {
   name: 'ParentProfilePage',
   layout: 'parent',
-  middleware: ['parent']
 }
 </script>

@@ -39,3 +39,4 @@ class Child(Base):
     parent = relationship("User", back_populates="children")
     task_templates = relationship("TaskTemplate", back_populates="child")
     task_assignments = relationship("TaskAssignment", back_populates="child")
+    rewards = relationship("Reward", back_populates="child")

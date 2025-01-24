@@ -152,10 +152,18 @@ async def create_assignment_from_template(
             detail="Шаблон задачи не активен"
         )
 
+    # Проверяем наличие активных заданий из этого шаблона
+    existing_assignment = task_crud.get_active_assignment_by_template(db, template_id)
+    if existing_assignment:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Уже есть активное задание из этого шаблона"
+        )
+
     assignment_data = TaskAssignmentCreate(
         template_id=template_id,
         child_id=template.child_id,
-        points_value=template.points_value,  # Добавляем points_value из шаблона
+        points_value=template.points_value,
         assigned_at=datetime.utcnow()
     )
 
@@ -167,7 +175,6 @@ async def create_assignment_from_template(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-
 
 @router.get("/assignments", response_model=List[TaskAssignmentResponse])
 async def get_child_assignments(
@@ -280,3 +287,39 @@ async def approve_assignment(
         db, assignment_id, update_data
     )
     return updated_assignment
+
+
+@router.delete("/assignments/{assignment_id}")
+async def delete_assignment(
+        assignment_id: int,
+        db: Session = Depends(get_db),
+        current_user: UserResponse = Depends(get_current_user)
+):
+    """Удаление назначенного задания"""
+    if current_user.role != "parent":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Только родители могут удалять задания"
+        )
+
+    assignment = task_crud.get_task_assignment(db, assignment_id)
+    if not assignment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Задание не найдено"
+        )
+
+    # Проверяем, не одобрено ли уже задание
+    if assignment.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Нельзя удалить одобренное задание"
+        )
+
+    if not task_crud.delete_task_assignment(db, assignment_id):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Не удалось удалить задание"
+        )
+
+    return {"status": "success"}

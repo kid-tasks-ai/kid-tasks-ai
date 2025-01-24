@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1 class="text-2xl font-semibold mb-6">Управление заданиями</h1>
+    <h1 class="text-2xl font-semibold mb-6">Назначенные заданиями</h1>
 
     <!-- Фильтры -->
     <UCard class="mb-6">
@@ -130,11 +130,47 @@
               >
                 Вернуть
               </UButton>
+              <UButton
+                  icon="i-heroicons-trash"
+                  color="red"
+                  variant="ghost"
+                  @click="deleteAssignment(assignment.id)"
+                  :disabled="assignment.is_approved"
+                  class="ml-2"
+              >
+                Удалить
+              </UButton>
             </div>
           </div>
         </UCard>
       </div>
     </div>
+
+    <!-- Модальное окно подтверждения удаления -->
+    <UModal v-model="showDeleteModal">
+      <div class="p-4">
+        <h3 class="text-lg font-medium mb-4">Подтверждение удаления</h3>
+        <p class="text-gray-600 mb-6">
+          Вы действительно хотите удалить это задание? Это действие нельзя будет отменить.
+        </p>
+        <div class="flex justify-end gap-2">
+          <UButton
+              variant="ghost"
+              @click="showDeleteModal = false"
+          >
+            Отмена
+          </UButton>
+          <UButton
+              color="red"
+              variant="solid"
+              :loading="deleteLoading"
+              @click="confirmDelete"
+          >
+            Удалить
+          </UButton>
+        </div>
+      </div>
+    </UModal>
   </div>
 </template>
 
@@ -166,7 +202,10 @@ export default {
       ],
       assignments: [],
       loading: false,
-      error: null
+      error: null,
+      showDeleteModal: false,
+      deleteLoading: false,
+      assignmentToDelete: null
     }
   },
 
@@ -260,6 +299,55 @@ export default {
       } catch (err) {
         console.error('Error loading initial data:', err)
         this.error = 'Не удалось загрузить данные'
+      }
+    },
+
+    // Новые методы для удаления
+    deleteAssignment(assignmentId) {
+      this.assignmentToDelete = assignmentId
+      this.showDeleteModal = true
+    },
+
+    async confirmDelete() {
+      if (!this.assignmentToDelete) return
+
+      try {
+        this.deleteLoading = true
+        const assignmentsStore = useAssignmentsStore()
+        await assignmentsStore.deleteAssignment(this.assignmentToDelete)
+
+        const { $notify } = useNuxtApp()
+        $notify.success('Задание удалено')
+
+        // Закрываем модальное окно и обновляем список
+        this.showDeleteModal = false
+        this.assignmentToDelete = null
+        await this.loadAssignments()
+
+      } catch (err) {
+        console.error('Error deleting assignment:', err)
+
+        // Определяем текст ошибки
+        let errorMessage = 'Не удалось удалить задание'
+        if (err.response?.status === 400) {
+          errorMessage = 'Нельзя удалить одобренное задание'
+        } else if (err.response?.status === 404) {
+          errorMessage = 'Задание не найдено'
+        } else if (err.response?.status === 403) {
+          errorMessage = 'У вас нет прав на удаление задания'
+        }
+
+        // Показываем ошибку пользователю
+        this.error = errorMessage
+
+        // Если это критическая ошибка - закрываем модальное окно
+        if (err.response?.status === 404) {
+          this.showDeleteModal = false
+          this.assignmentToDelete = null
+          await this.loadAssignments() // Обновляем список на случай рассинхронизации
+        }
+      } finally {
+        this.deleteLoading = false
       }
     }
   }

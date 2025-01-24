@@ -281,7 +281,7 @@ export default {
     },
 
     editTemplate(template) {
-      this.editingTemplate = { ...template }
+      this.editingTemplate = {...template}
       this.showForm = true
     },
 
@@ -335,30 +335,28 @@ export default {
       }
     },
     async assignTemplate(template) {
-      if (!template.is_active) return
-
       try {
-        this.assigningTemplateId = template.id
-        await this.assignmentsStore.createFromTemplate(template.id)
+        this.loading = true;
+        const assignmentsStore = useAssignmentsStore()
+        await assignmentsStore.createFromTemplate(template.id)
 
-        const { $notify } = useNuxtApp()
+        const {$notify} = useNuxtApp()
+        $notify.success('Шаблон успешно назначен')
 
-        // Если шаблон одноразовый, обновляем список после назначения
-        if (template.schedule_type === 'once') {
-          await this.loadTemplates()
-        }
-
-        // Показываем уведомление об успехе
-        $notify.success('Задание назначено')
+        await this.loadTemplates() // Обновляем список шаблонов
 
       } catch (err) {
         console.error('Error assigning template:', err)
-        // Показываем уведомление об ошибке
-        $notify.error('Не удалось назначить задание')
+
+        let errorMessage = err?.data?.detail || 'Не удалось назначить задание'
+
+        const {$notify} = useNuxtApp()
+        $notify.error(errorMessage)
+
       } finally {
-        this.assigningTemplateId = null
+        this.loading = false
       }
-    },
+    }
   }
 }
 </script>

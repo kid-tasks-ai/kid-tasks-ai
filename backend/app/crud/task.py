@@ -161,11 +161,37 @@ def get_completed_assignments(db: Session, child_id: int) -> List[TaskAssignment
 
 
 def delete_task_assignment(db: Session, assignment_id: int) -> bool:
-    """Удаление назначенной задачи"""
-    db_assignment = get_task_assignment(db, assignment_id)
-    if not db_assignment:
+    try:
+        assignment = db.query(TaskAssignment).filter(
+            TaskAssignment.id == assignment_id
+        ).first()
+
+        if not assignment:
+            return False
+
+        db.delete(assignment)
+        db.commit()
+        return True
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting assignment: {str(e)}")
         return False
 
-    db.delete(db_assignment)
-    db.commit()
-    return True
+
+def get_active_assignment_by_template(db: Session, template_id: int) -> Optional[TaskAssignment]:
+    """
+    Получение активного задания по шаблону
+
+    Args:
+        db: сессия базы данных
+        template_id: ID шаблона
+
+    Returns:
+        Optional[TaskAssignment]: активное задание или None
+    """
+    return db.query(TaskAssignment).filter(
+        TaskAssignment.template_id == template_id,
+        TaskAssignment.is_completed == False,  # не выполнено
+        TaskAssignment.is_approved == False  # не одобрено
+    ).first()

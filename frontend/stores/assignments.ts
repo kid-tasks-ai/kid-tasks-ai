@@ -22,7 +22,6 @@ export const useAssignmentsStore = () => {
 
     // Загрузка заданий с фильтрами
     async function fetchAssignments(filters: AssignmentFilters): Promise<void> {
-        // Проверяем наличие обязательного параметра
         if (!filters.childId) {
             assignments.value = []
             error.value = 'Не указан ID ребенка'
@@ -49,15 +48,14 @@ export const useAssignmentsStore = () => {
                 baseURL: config.public.apiBase,
                 headers: getHeaders()
             })
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error fetching assignments:', err)
-            error.value = err?.data?.detail || 'Не удалось загрузить задания'
+            error.value = err?.response?._data?.detail || 'Не удалось загрузить задания'
             throw err
         } finally {
             loading.value = false
         }
     }
-
 
     // Создание задания из шаблона
     async function createFromTemplate(templateId: number): Promise<void> {
@@ -71,10 +69,19 @@ export const useAssignmentsStore = () => {
                 method: 'POST',
                 headers: getHeaders()
             })
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error creating assignment:', err)
+
+            // Если это ожидаемая ошибка (например, 400)
+            if (err.expected) {
+                error.value = err.message
+                throw err // Прокидываем ошибку дальше для обработки в компоненте
+                return
+            }
+
+            // Для неожиданных ошибок
             error.value = 'Не удалось создать задание'
-            throw err
+            throw error
         } finally {
             loading.value = false
         }
@@ -92,9 +99,35 @@ export const useAssignmentsStore = () => {
                 method: 'PUT',
                 headers: getHeaders()
             })
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error approving assignment:', err)
-            error.value = 'Не удалось одобрить задание'
+            error.value = err?.response?._data?.detail || 'Не удалось одобрить задание'
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
+    // Удаление задания
+    async function deleteAssignment(assignmentId: number): Promise<void> {
+        try {
+            loading.value = true
+            error.value = null
+            const config = useRuntimeConfig()
+
+            await $fetch(`/api/v1/tasks/assignments/${assignmentId}`, {
+                baseURL: config.public.apiBase,
+                method: 'DELETE',
+                headers: getHeaders()
+            })
+
+            // Удаляем задание из локального состояния
+            assignments.value = assignments.value.filter(
+                assignment => assignment.id !== assignmentId
+            )
+        } catch (err: any) {
+            console.error('Error deleting assignment:', err)
+            error.value = err?.response?._data?.detail || 'Не удалось удалить задание'
             throw err
         } finally {
             loading.value = false
@@ -109,7 +142,8 @@ export const useAssignmentsStore = () => {
         // Actions
         fetchAssignments,
         createFromTemplate,
-        approveAssignment
+        approveAssignment,
+        deleteAssignment
     }
 }
 

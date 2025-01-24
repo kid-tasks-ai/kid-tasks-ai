@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
@@ -195,3 +196,14 @@ def get_active_assignment_by_template(db: Session, template_id: int) -> Optional
         TaskAssignment.is_completed == False,  # не выполнено
         TaskAssignment.is_approved == False  # не одобрено
     ).first()
+
+
+def complete_task(db: Session, task_id: int) -> TaskAssignment:
+    """Отметить задание как выполненное"""
+    task = db.query(TaskAssignment).filter(TaskAssignment.id == task_id).first()
+    if task:
+        task.is_completed = True
+        task.completed_at = datetime.utcnow()
+        db.commit()
+        db.refresh(task)
+    return task

@@ -187,11 +187,13 @@ import { useTemplatesStore } from '~/stores/templates'
 import { useAssignmentsStore } from '~/stores/assignments'  // Добавляем импорт
 import TemplateForm from '~/components/tasks/TemplateForm.vue'
 
+definePageMeta({
+  middleware: ['parent']
+})
+
 export default {
   name: 'TemplatesPage',
   layout: 'parent',
-  middleware: ['parent'],
-
   components: {
     TemplateForm
   },

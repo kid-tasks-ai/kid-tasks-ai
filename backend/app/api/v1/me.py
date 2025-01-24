@@ -8,6 +8,7 @@ from app.core.security import get_current_user
 from app.schemas.task import TaskAssignmentResponse
 from app.schemas.reward import RewardResponse
 from app.schemas.user import UserResponse
+from app.schemas.child import ChildResponse
 from app.crud import task as task_crud
 from app.crud import reward as reward_crud
 
@@ -163,3 +164,18 @@ async def redeem_my_reward(
         )
 
     return redeemed_reward
+
+
+@router.get("", response_model=ChildResponse)
+async def get_my_profile(
+        db: Session = Depends(get_db),
+        current_user: UserResponse = Depends(get_current_user)
+):
+    """Получение профиля текущего пользователя (ребенка)"""
+    if current_user.role != "child":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Доступ только для детей"
+        )
+
+    return current_user

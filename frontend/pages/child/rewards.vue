@@ -18,12 +18,6 @@
             class="w-48"
         />
       </div>
-
-      <!-- Баланс баллов -->
-      <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow">
-        <UIcon name="i-heroicons-star" class="text-yellow-500" size="lg" />
-        <span class="text-lg font-medium">{{ pointsBalance }} баллов</span>
-      </div>
     </div>
 
     <!-- Список наград -->
@@ -65,34 +59,38 @@
   </div>
 </template>
 
-<script lang="ts">
-import {useChildRewardsStore, type Reward} from '~/stores/childRewards'
+<script>
+import { useChildRewardsStore } from '~/stores/childRewards'
+import { useChildProfileStore } from '~/stores/childProfile'
 import RewardCard from '~/components/rewards/RewardCard.vue'
+
+definePageMeta({
+  middleware: ['child']
+})
 
 export default {
   name: 'ChildRewardsPage',
   layout: 'child',
-  middleware: ['child'],
-  components: {RewardCard},
-
-  setup() {
-    const store = useChildRewardsStore()
-    return {store}
-  },
+  components: { RewardCard },
 
   data() {
     return {
-      filter: null as null | 'available' | 'redeemed',
-      pointsBalance: 0, // TODO: Получать из API
-      redeemingId: null as number | null,
+      filter: null,
+      redeemingId: null,
       loading: false,
-      error: null as string | null
+      error: null,
+      rewardsStore: null,
+      profileStore: null
     }
   },
 
   computed: {
-    displayedRewards(): Reward[] {
-      let rewards = this.store.rewards.value
+    pointsBalance() {
+      return this.profileStore?.pointsBalance || 0
+    },
+
+    displayedRewards() {
+      const rewards = this.rewardsStore?.rewards || []
 
       if (this.filter === 'available') {
         return rewards.filter(reward => !reward.is_redeemed)
@@ -104,7 +102,7 @@ export default {
       return rewards
     },
 
-    getEmptyStateText(): string {
+    getEmptyStateText() {
       if (this.filter === 'available') {
         return 'Нет доступных наград'
       }
@@ -114,7 +112,7 @@ export default {
       return 'Нет наград'
     },
 
-    getEmptyStateDescription(): string {
+    getEmptyStateDescription() {
       if (this.filter === 'available') {
         return 'Зарабатывайте баллы, выполняя задания!'
       }
@@ -125,15 +123,16 @@ export default {
     }
   },
 
-  async created() {
-    await this.loadRewards()
-    this.pointsBalance = 150 // TODO: Получать из API
-  },
-
   watch: {
     filter() {
       this.loadRewards()
     }
+  },
+
+  created() {
+    this.rewardsStore = useChildRewardsStore()
+    this.profileStore = useChildProfileStore()
+    this.loadRewards()
   },
 
   methods: {
@@ -142,14 +141,14 @@ export default {
       this.error = null
 
       try {
-        let isRedeemed: boolean | undefined
+        let isRedeemed
         if (this.filter === 'available') {
           isRedeemed = false
         } else if (this.filter === 'redeemed') {
           isRedeemed = true
         }
 
-        await this.store.fetchRewards(isRedeemed)
+        await this.rewardsStore.fetchRewards({ is_redeemed: isRedeemed })
       } catch (err) {
         console.error('Error loading rewards:', err)
         this.error = 'Не удалось загрузить список наград'
@@ -158,14 +157,13 @@ export default {
       }
     },
 
-    async handleRedeem(rewardId: number) {
+    async handleRedeem(rewardId) {
       this.redeemingId = rewardId
 
       try {
-        await this.store.redeemReward(rewardId)
-        // TODO: Обновить баланс баллов
-        this.pointsBalance -= this.store.rewards.value
-            .find(r => r.id === rewardId)?.points_cost || 0
+        await this.rewardsStore.redeemReward(rewardId)
+        // Обновляем профиль для получения актуального баланса
+        await this.profileStore.fetchProfile()
       } catch (err) {
         console.error('Error redeeming reward:', err)
         // TODO: Показать уведомление об ошибке

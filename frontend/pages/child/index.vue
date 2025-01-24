@@ -32,11 +32,30 @@
             v-for="task in activeTasks.tasks"
             :key="task.id"
             class="py-4"
+            :class="{'bg-red-50': task.returned_at}"
         >
           <div class="flex items-start justify-between">
             <div class="space-y-1">
-              <h3 class="text-base font-medium">{{ task.template.title }}</h3>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-medium">{{ task.template.title }}</h3>
+                <UBadge
+                    v-if="task.returned_at"
+                    color="red"
+                    variant="soft"
+                >
+                  Требует доработки
+                </UBadge>
+              </div>
               <p class="text-sm text-gray-600">{{ task.template.description }}</p>
+              <div v-if="task.parent_comment" class="mt-2 p-3 bg-red-100 rounded-md">
+                <p class="text-sm text-red-700">
+                  <span class="font-medium">Комментарий родителя:</span><br/>
+                  {{ task.parent_comment }}
+                </p>
+                <p class="text-xs text-red-600 mt-1">
+                  Возвращено: {{ formatDate(task.returned_at) }}
+                </p>
+              </div>
               <div class="flex items-center gap-4 text-sm text-gray-500">
                 <span class="flex items-center gap-1">
                   <UIcon name="i-heroicons-star" class="text-yellow-500" />
@@ -49,11 +68,11 @@
               </div>
             </div>
             <UButton
-                color="primary"
+                :color="task.returned_at ? 'red' : 'primary'"
                 :loading="completing === task.id"
                 @click="handleComplete(task)"
             >
-              Выполнено
+              {{ task.returned_at ? 'Отправить заново' : 'Выполнено' }}
             </UButton>
           </div>
         </div>
@@ -65,8 +84,6 @@
       <template #header>
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-medium">Выполненные задания</h2>
-
-          <!-- Фильтр для отображения одобренных/на проверке -->
           <USelect
               v-model="completedFilter"
               :options="[
@@ -135,32 +152,32 @@
   </div>
 </template>
 
-<script lang="ts">
-import { useChildTasksStore, type TaskAssignment } from '~/stores/childTasks'
+<script>
+import { useChildTasksStore } from '~/stores/childTasks'
+
+definePageMeta({
+  middleware: ['child']
+})
 
 export default {
   name: 'ChildTasksPage',
-  layout: 'child',
-  middleware: ['child'],
 
-  setup() {
-    const store = useChildTasksStore()
-    return { store }
-  },
+  layout: 'child',
 
   data() {
     return {
-      completing: null as number | null,
-      completedFilter: null as null | 'pending' | 'approved',
+      store: null,
+      completing: null,
+      completedFilter: null,
       activeTasks: {
-        tasks: [] as TaskAssignment[],
+        tasks: [],
         loading: false,
-        error: null as string | null
+        error: null
       },
       completedTasks: {
-        tasks: [] as TaskAssignment[],
+        tasks: [],
         loading: false,
-        error: null as string | null
+        error: null
       }
     }
   },
@@ -172,6 +189,7 @@ export default {
   },
 
   async created() {
+    this.store = useChildTasksStore()
     await this.loadTasks()
   },
 
@@ -185,11 +203,17 @@ export default {
 
     async loadActiveTasks() {
       this.activeTasks.loading = true
-      this.activeTasks.error = null
-
       try {
+        // Загружаем невыполненные задания
         await this.store.fetchTasks({ is_completed: false })
-        this.activeTasks.tasks = this.store.tasks.value
+        const notCompletedTasks = this.store.tasks
+
+        // Загружаем возвращенные задания
+        await this.store.fetchTasks({ is_completed: true, is_approved: false })
+        const returnedTasks = this.store.tasks.filter(task => task.returned_at)
+
+        // Объединяем задания
+        this.activeTasks.tasks = [...notCompletedTasks, ...returnedTasks]
       } catch (err) {
         console.error('Error loading active tasks:', err)
         this.activeTasks.error = 'Не удалось загрузить активные задания'
@@ -203,7 +227,7 @@ export default {
       this.completedTasks.error = null
 
       try {
-        const filters: Record<string, boolean> = { is_completed: true }
+        const filters = { is_completed: true }
 
         if (this.completedFilter === 'pending') {
           filters.is_approved = false
@@ -212,7 +236,8 @@ export default {
         }
 
         await this.store.fetchTasks(filters)
-        this.completedTasks.tasks = this.store.tasks.value
+        // Фильтруем возвращенные задания из списка выполненных
+        this.completedTasks.tasks = this.store.tasks.filter(task => !task.returned_at)
       } catch (err) {
         console.error('Error loading completed tasks:', err)
         this.completedTasks.error = 'Не удалось загрузить выполненные задания'
@@ -221,20 +246,22 @@ export default {
       }
     },
 
-    formatDate(date: string | null) {
+    formatDate(date) {
       if (!date) return ''
       return new Intl.DateTimeFormat('ru-RU', {
         day: '2-digit',
         month: '2-digit',
-        year: 'numeric'
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
       }).format(new Date(date))
     },
 
-    async handleComplete(task: TaskAssignment) {
+    async handleComplete(task) {
       try {
         this.completing = task.id
         await this.store.completeTask(task.id)
-        await this.loadTasks() // Перезагружаем оба списка
+        await this.loadTasks()
       } catch (err) {
         console.error('Error completing task:', err)
       } finally {

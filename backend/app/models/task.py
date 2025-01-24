@@ -35,6 +35,8 @@ class TaskAssignment(Base):
     assigned_at = Column(DateTime(timezone=True), nullable=False)
     completed_at = Column(DateTime(timezone=True))
     approved_at = Column(DateTime(timezone=True))
+    parent_comment  = Column(String)
+    returned_at = Column(DateTime)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

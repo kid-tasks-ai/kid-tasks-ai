@@ -1,4 +1,3 @@
-// stores/childTasks.ts
 import { useAuthStore } from './auth'
 
 export interface TaskAssignment {
@@ -10,6 +9,8 @@ export interface TaskAssignment {
     assigned_at: string
     completed_at: string | null
     approved_at: string | null
+    returned_at: string | null
+    parent_comment: string | null
     template: {
         title: string
         description: string
@@ -45,7 +46,6 @@ export const useChildTasksStore = () => {
             loading.value = true
             error.value = null
             const config = useRuntimeConfig()
-            const auth = useAuthStore()
 
             // Формируем параметры запроса
             const params = new URLSearchParams()
@@ -56,7 +56,6 @@ export const useChildTasksStore = () => {
                 params.append('is_approved', String(filters.is_approved))
             }
 
-            // Добавляем child_id из текущего пользователя
             tasks.value = await $fetch<TaskAssignment[]>(
                 `/api/v1/me/tasks?${params.toString()}`, {
                     baseURL: config.public.apiBase,
@@ -104,11 +103,9 @@ export const useChildTasksStore = () => {
     }
 
     return {
-        // State
         tasks,
         loading,
         error,
-        // Actions
         fetchTasks,
         completeTask
     }

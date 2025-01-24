@@ -1,7 +1,7 @@
 # app/api/v1/tasks.py
 from datetime import datetime  # Добавляем импорт
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body,Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -323,3 +323,30 @@ async def delete_assignment(
         )
 
     return {"status": "success"}
+
+
+@router.put("/assignments/{assignment_id}/return", response_model=TaskAssignmentResponse)
+async def return_assignment(
+        assignment_id: int,
+        parent_comment: str = Body(..., embed=True),
+        db: Session = Depends(get_db),
+        current_user: UserResponse = Depends(get_current_user)
+):
+    if current_user.role != "parent":
+        raise HTTPException(status_code=403, detail="Только родители могут возвращать задачи")
+
+    assignment = task_crud.get_task_assignment(db, assignment_id)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+
+    if not assignment.is_completed or assignment.is_approved:
+        raise HTTPException(status_code=400, detail="Можно вернуть только выполненную, но не одобренную задачу")
+
+    update_data = TaskAssignmentUpdate(
+        is_completed=False,
+        completed_at=None,
+        parent_comment=parent_comment,
+        returned_at=datetime.utcnow()
+    )
+
+    return task_crud.update_task_assignment(db, assignment_id, update_data)

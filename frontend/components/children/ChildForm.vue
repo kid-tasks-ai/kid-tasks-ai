@@ -51,7 +51,7 @@
           v-model="form.interests"
           placeholder="Опишите интересы ребенка"
           :error="errors.interests"
-          rows="3"
+          :rows="3"
       />
     </UFormGroup>
 
@@ -60,7 +60,7 @@
           v-model="form.preferences"
           placeholder="Укажите предпочтения ребенка"
           :error="errors.preferences"
-          rows="3"
+          :rows="3"
       />
     </UFormGroup>
 

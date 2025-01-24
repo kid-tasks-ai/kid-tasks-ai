@@ -43,7 +43,7 @@ export default {
         { path: '/parent', label: 'Профиль' },
         { path: '/parent/children', label: 'Дети' },
         { path: '/parent/templates', label: 'Шаблоны заданий' },
-        { path: '/parent/tasks', label: 'Управление заданиями' },
+        { path: '/parent/tasks', label: 'Задания' },
         { path: '/parent/rewards', label: 'Награды' },
         { path: '/parent/statistics', label: 'Статистика' }
       ]

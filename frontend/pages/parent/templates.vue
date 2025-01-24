@@ -127,6 +127,18 @@
               </div>
             </div>
             <div class="flex items-start gap-2">
+              <!-- Добавляем кнопку назначения -->
+              <UButton
+                  v-if="template.is_active"
+                  icon="i-heroicons-play"
+                  color="blue"
+                  variant="soft"
+                  :loading="template.id === assigningTemplateId"
+                  @click="assignTemplate(template)"
+                  :disabled="!template.is_active"
+              >
+                Назначить
+              </UButton>
               <UButton
                   icon="i-heroicons-pencil-square"
                   color="gray"
@@ -172,6 +184,7 @@
 <script>
 import { useChildrenStore } from '~/stores/children'
 import { useTemplatesStore } from '~/stores/templates'
+import { useAssignmentsStore } from '~/stores/assignments'  // Добавляем импорт
 import TemplateForm from '~/components/tasks/TemplateForm.vue'
 
 export default {
@@ -185,8 +198,10 @@ export default {
 
   setup() {
     const templatesStore = useTemplatesStore()
+    const assignmentsStore = useAssignmentsStore()
     return {
-      templatesStore
+      templatesStore,
+      assignmentsStore
     }
   },
 
@@ -201,7 +216,8 @@ export default {
       formLoading: false,
       templates: [],
       children: [],
-      isGenerating: false
+      isGenerating: false,
+      assigningTemplateId: null
     }
   },
 
@@ -265,7 +281,7 @@ export default {
     },
 
     editTemplate(template) {
-      this.editingTemplate = { ...template }
+      this.editingTemplate = {...template}
       this.showForm = true
     },
 
@@ -316,6 +332,29 @@ export default {
         // TODO: Реализовать генерацию
       } finally {
         this.isGenerating = false;
+      }
+    },
+    async assignTemplate(template) {
+      try {
+        this.loading = true;
+        const assignmentsStore = useAssignmentsStore()
+        await assignmentsStore.createFromTemplate(template.id)
+
+        const {$notify} = useNuxtApp()
+        $notify.success('Шаблон успешно назначен')
+
+        await this.loadTemplates() // Обновляем список шаблонов
+
+      } catch (err) {
+        console.error('Error assigning template:', err)
+
+        let errorMessage = err?.data?.detail || 'Не удалось назначить задание'
+
+        const {$notify} = useNuxtApp()
+        $notify.error(errorMessage)
+
+      } finally {
+        this.loading = false
       }
     }
   }

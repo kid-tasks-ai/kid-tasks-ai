@@ -117,20 +117,32 @@ def update_task_assignment(
         assignment_id: int,
         assignment_data: TaskAssignmentUpdate
 ) -> Optional[TaskAssignment]:
-    """Обновление статуса назначенной задачи"""
     db_assignment = get_task_assignment(db, assignment_id)
     if not db_assignment:
         return None
 
     update_data = assignment_data.dict(exclude_unset=True)
 
-    # Если задача отмечается как выполненная, добавляем дату выполнения
+    # Для выполнения задачи
     if update_data.get('is_completed') and not db_assignment.completed_at:
         update_data['completed_at'] = datetime.utcnow()
 
-    # Если задача одобряется, добавляем дату одобрения
+    # Для возврата задачи
+    if update_data.get('is_completed') is False:
+        update_data['completed_at'] = None
+        update_data['returned_at'] = datetime.utcnow()
+
+    # Для одобрения задачи
     if update_data.get('is_approved') and not db_assignment.approved_at:
         update_data['approved_at'] = datetime.utcnow()
+        if not db_assignment.is_completed:
+            raise HTTPException(
+                status_code=400,
+                detail="Нельзя одобрить невыполненное задание"
+            )
+        child = db_assignment.child
+        child.points_balance += db_assignment.points_value
+        db.add(child)
 
     for field, value in update_data.items():
         setattr(db_assignment, field, value)
@@ -203,6 +215,8 @@ def complete_task(db: Session, task_id: int) -> TaskAssignment:
     task = db.query(TaskAssignment).filter(TaskAssignment.id == task_id).first()
     if task:
         task.is_completed = True
+        task.returned_at = None
+        task.parent_comment = None
         task.completed_at = datetime.utcnow()
         db.commit()
         db.refresh(task)

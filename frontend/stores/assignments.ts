@@ -108,6 +108,26 @@ export const useAssignmentsStore = () => {
         }
     }
 
+    async function returnAssignment(id: number, comment: string) {
+        try {
+            loading.value = true
+            error.value = null
+            const config = useRuntimeConfig()
+            await $fetch(`/api/v1/tasks/assignments/${id}/return`, {
+                baseURL: config.public.apiBase,
+                method: 'PUT',
+                body: { parent_comment: comment },
+                headers: getHeaders()
+            });
+        } catch (err: any) {
+            console.error('Error approving assignment:', err)
+            error.value = err?.response?._data?.detail || 'Не удалось одобрить задание'
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
     // Удаление задания
     async function deleteAssignment(assignmentId: number): Promise<void> {
         try {
@@ -143,6 +163,7 @@ export const useAssignmentsStore = () => {
         fetchAssignments,
         createFromTemplate,
         approveAssignment,
+        returnAssignment,
         deleteAssignment
     }
 }

@@ -42,6 +42,7 @@ class TaskAssignmentCreate(TaskAssignmentBase):
 class TaskAssignmentUpdate(BaseModel):
     is_completed: Optional[bool] = None
     is_approved: Optional[bool] = None
+    parent_comment: Optional[str] = None
     completed_at: Optional[datetime] = None
     approved_at: Optional[datetime] = None
 
@@ -54,6 +55,8 @@ class TaskAssignmentResponse(TaskAssignmentBase):
     assigned_at: datetime
     completed_at: Optional[datetime] = None
     approved_at: Optional[datetime] = None
+    parent_comment: Optional[str] = None
+    returned_at: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     template: TaskTemplateResponse

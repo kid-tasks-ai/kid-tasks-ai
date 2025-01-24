@@ -112,24 +112,24 @@
               </div>
             </div>
             <div class="flex items-start gap-2">
-              <UButton
-                  v-if="assignment.is_completed && !assignment.is_approved"
-                  icon="i-heroicons-check"
-                  color="green"
-                  variant="soft"
-                  @click="approveAssignment(assignment.id)"
-              >
-                Принять
-              </UButton>
-              <UButton
-                  v-if="!assignment.is_completed"
-                  icon="i-heroicons-arrow-path"
-                  color="red"
-                  variant="soft"
-                  @click="returnAssignment(assignment.id)"
-              >
-                Вернуть
-              </UButton>
+              <template v-if="assignment.is_completed && !assignment.is_approved">
+                <UButton
+                    icon="i-heroicons-check"
+                    color="green"
+                    variant="soft"
+                    @click="approveAssignment(assignment.id)"
+                >
+                  Принять
+                </UButton>
+                <UButton
+                    icon="i-heroicons-x-mark"
+                    color="red"
+                    variant="soft"
+                    @click="showReturnModal(assignment)"
+                >
+                  Вернуть
+                </UButton>
+              </template>
               <UButton
                   icon="i-heroicons-trash"
                   color="red"
@@ -141,6 +141,7 @@
                 Удалить
               </UButton>
             </div>
+
           </div>
         </UCard>
       </div>
@@ -171,6 +172,36 @@
         </div>
       </div>
     </UModal>
+
+    <!-- Модальное окно возврата задания -->
+    <UModal v-model="returnModalVisible">
+      <div class="p-4">
+        <h3 class="text-lg font-medium mb-4">Возврат задания</h3>
+        <UFormGroup label="Комментарий" required>
+          <UTextarea
+              v-model="returnComment"
+              placeholder="Укажите причину возврата"
+              :rows="3"
+          />
+        </UFormGroup>
+        <div class="flex justify-end gap-2 mt-4">
+          <UButton
+              variant="ghost"
+              @click="returnModalVisible = false"
+          >
+            Отмена
+          </UButton>
+          <UButton
+              color="red"
+              :loading="returnLoading"
+              @click="confirmReturn"
+          >
+            Вернуть
+          </UButton>
+        </div>
+      </div>
+    </UModal>
+
   </div>
 </template>
 
@@ -208,7 +239,11 @@ export default {
       error: null,
       showDeleteModal: false,
       deleteLoading: false,
-      assignmentToDelete: null
+      assignmentToDelete: null,
+      returnModalVisible: false,
+      returnLoading: false,
+      returnComment: '',
+      selectedAssignment: null
     }
   },
 
@@ -286,11 +321,6 @@ export default {
       }
     },
 
-    async returnAssignment(assignmentId) {
-      // TODO: Implement return assignment functionality
-      console.log('Return assignment:', assignmentId)
-    },
-
     async loadInitialData() {
       try {
         const childrenStore = useChildrenStore()
@@ -351,6 +381,41 @@ export default {
         }
       } finally {
         this.deleteLoading = false
+      }
+    },
+    showReturnModal(assignment) {
+      this.selectedAssignment = assignment
+      this.returnComment = ''
+      this.returnModalVisible = true
+    },
+
+    async confirmReturn() {
+      if (!this.returnComment.trim()) {
+        return
+      }
+
+      try {
+        this.returnLoading = true
+        const assignmentsStore = useAssignmentsStore()
+
+        await assignmentsStore.returnAssignment(
+            this.selectedAssignment.id,
+            this.returnComment
+        )
+        await this.loadAssignments()
+
+        const { $notify } = useNuxtApp()
+        $notify.success('Задание возвращено на доработку')
+
+        this.returnModalVisible = false
+        this.selectedAssignment = null
+        await this.loadAssignments()
+
+      } catch (err) {
+        console.error('Error returning assignment:', err)
+        this.error = 'Не удалось вернуть задание'
+      } finally {
+        this.returnLoading = false
       }
     }
   }

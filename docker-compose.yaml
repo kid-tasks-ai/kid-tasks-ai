@@ -28,6 +28,7 @@ services:
       - "8000:8000"
     depends_on:
       - postgres
+      - openai
 
   frontend:
     build:
@@ -48,3 +49,12 @@ services:
       WATCHPACK_POLLING: "${DEV_MODE:-false}"
     depends_on:
       - backend
+
+  openai:
+    build:
+      context: ./openai_endpoint
+      dockerfile: task_generator.Dockerfile
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "8010:8010"

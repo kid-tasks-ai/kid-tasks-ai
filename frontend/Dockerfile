@@ -14,7 +14,7 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 
 CMD if [ "$NODE_ENV" = "production" ]; then \
-       npm run build && npm run start; \
-   else \
-       npm run dev; \
-   fi
+        npm run build && node ./.output/server/index.mjs; \
+    else \
+        npm run dev; \
+    fi

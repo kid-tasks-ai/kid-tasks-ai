@@ -1,6 +1,6 @@
 // components/auth/AuthForm.vue
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-100">
+  <div class="min-h-screen flex md:items-center items-start justify-center bg-gray-100">
     <UCard class="w-full max-w-md">
       <template #header>
         <h2 class="text-2xl font-bold text-center">

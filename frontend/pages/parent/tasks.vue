@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1 class="text-2xl font-semibold mb-6">Назначенные заданиями</h1>
+    <h1 class="text-2xl font-semibold mb-6">Назначенные задания</h1>
 
     <!-- Фильтры -->
     <UCard class="mb-6">

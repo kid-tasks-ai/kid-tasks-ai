@@ -60,8 +60,8 @@ async def login(
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
-        refresh_token: str,
-        db: Session = Depends(get_db)
+    refresh_token: str,  # Теперь параметр берется из query
+    db: Session = Depends(get_db)
 ):
     try:
         # Проверяем refresh токен

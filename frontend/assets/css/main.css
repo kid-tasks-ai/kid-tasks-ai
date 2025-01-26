@@ -1,3 +1,48 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+    color-scheme: light;
+}
+
+/* Мобильные оптимизации */
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        @apply bg-white text-gray-900;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
+
+/* Адаптивные стили для мобильных устройств */
+@layer components {
+    .mobile-container {
+        @apply px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto;
+    }
+
+    .mobile-card {
+        @apply bg-white shadow-sm rounded-lg p-4 sm:p-6;
+    }
+
+    .mobile-nav {
+        @apply fixed bottom-0 left-0 right-0 bg-white shadow-t-lg md:relative md:shadow-none;
+    }
+}
+
+/* Переопределение темных тем */
+.dark body {
+    @apply bg-white text-gray-900;
+}
+
+.dark .mobile-card {
+    @apply bg-white;
+}
+
+.dark .mobile-nav {
+    @apply bg-white;
+}

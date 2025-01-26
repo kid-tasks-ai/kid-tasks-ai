@@ -1,5 +1,6 @@
+// components/auth/AuthForm.vue
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-100">
+  <div class="min-h-screen flex md:items-center items-start justify-center bg-gray-100">
     <UCard class="w-full max-w-md">
       <template #header>
         <h2 class="text-2xl font-bold text-center">
@@ -63,10 +64,11 @@
   </div>
 </template>
 
-<script>
-import { useAuthStore } from '~/stores/auth'
+<script lang="ts">
+import { useAuthStore } from '~/stores/auth';
+import type { RegisterData } from '~/types/auth';
 
-export default {
+export default defineComponent({
   name: 'AuthForm',
 
   data() {
@@ -78,52 +80,54 @@ export default {
         email: '',
         password: '',
         name: ''
-      }
+      } as RegisterData
     }
   },
 
   computed: {
-    submitButtonText() {
-      if (this.loading) return 'Загрузка...'
-      return this.isLogin ? 'Войти' : 'Зарегистрироваться'
+    submitButtonText(): string {
+      if (this.loading) return 'Загрузка...';
+      return this.isLogin ? 'Войти' : 'Зарегистрироваться';
     },
-    toggleButtonText() {
+    toggleButtonText(): string {
       return this.isLogin
           ? 'Нет аккаунта? Зарегистрируйтесь'
-          : 'Уже есть аккаунт? Войдите'
+          : 'Уже есть аккаунт? Войдите';
     }
   },
 
   methods: {
-    toggleAuthMode() {
-      this.isLogin = !this.isLogin
-      this.error = ''
+    toggleAuthMode(): void {
+      this.isLogin = !this.isLogin;
+      this.error = '';
     },
 
-    async handleSubmit() {
-      this.error = ''
-      this.loading = true
-      const auth = useAuthStore()
+    async handleSubmit(): Promise<void> {
+      this.error = '';
+      this.loading = true;
+      const auth = useAuthStore();
 
       try {
         if (this.isLogin) {
-          const role = await auth.login(this.formData.email, this.formData.password)
-          this.$router.push(role === 'parent' ? '/parent' : '/child')
+          const role = await auth.login(this.formData.email, this.formData.password);
+          await this.$router.push(role === 'parent' ? '/parent' : '/child');
         } else {
-          const role = await auth.register(this.formData)
-          this.$router.push(role === 'parent' ? '/parent' : '/child')
+          // При регистрации передаем все данные формы
+          const role = await auth.register(this.formData);
+          await this.$router.push(role === 'parent' ? '/parent' : '/child');
         }
-      } catch (err) {
-        console.error('Auth error:', err)
-        this.error = err.data?.detail || 'Произошла ошибка при обработке запроса'
+      } catch (err: any) {
+        console.error('Auth error:', err);
+        this.error = err.data?.detail || 'Произошла ошибка при обработке запроса';
       } finally {
-        this.loading = false
+        this.loading = false;
       }
     }
   },
+
   setup() {
-    const auth = useAuthStore()
-    return { auth }
+    const auth = useAuthStore();
+    return { auth };
   },
-}
+})
 </script>

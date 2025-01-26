@@ -1,6 +1,7 @@
 # app/api/v1/tasks.py
+from datetime import datetime  # Добавляем импорт
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body,Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -124,23 +125,59 @@ async def delete_template(
 
 # Назначенные задачи
 
-@router.post("/assignments", response_model=TaskAssignmentResponse)
-async def create_assignment(
-        assignment: TaskAssignmentCreate,
+@router.post("/templates/{template_id}/assign", response_model=TaskAssignmentResponse)
+async def create_assignment_from_template(
+        template_id: int,
         db: Session = Depends(get_db),
         current_user: UserResponse = Depends(get_current_user)
 ):
-    """Создание нового назначения задачи"""
+    """Создание назначения задачи из шаблона"""
     if current_user.role != "parent":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Только родители могут назначать задачи"
         )
-    return task_crud.create_task_assignment(db, assignment)
 
+    template = task_crud.get_task_template(db, template_id)
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Шаблон задачи не найден"
+        )
+
+    # Проверяем, что шаблон активен
+    if not template.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Шаблон задачи не активен"
+        )
+
+    # Проверяем наличие активных заданий из этого шаблона
+    existing_assignment = task_crud.get_active_assignment_by_template(db, template_id)
+    if existing_assignment:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Уже есть активное задание из этого шаблона"
+        )
+
+    assignment_data = TaskAssignmentCreate(
+        template_id=template_id,
+        child_id=template.child_id,
+        points_value=template.points_value,
+        assigned_at=datetime.utcnow()
+    )
+
+    try:
+        assignment = task_crud.create_task_assignment(db, assignment_data)
+        return assignment
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.get("/assignments", response_model=List[TaskAssignmentResponse])
-async def get_assignments(
+async def get_child_assignments(
         child_id: int,
         is_completed: Optional[bool] = None,
         is_approved: Optional[bool] = None,
@@ -149,21 +186,15 @@ async def get_assignments(
         db: Session = Depends(get_db),
         current_user: UserResponse = Depends(get_current_user)
 ):
-    """Получение списка назначенных задач"""
-    if current_user.role not in ["parent", "child"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Доступ запрещен"
-        )
-
-    # Для ребенка показываем только его задачи
+    """Получение списка назначенных задач для ребенка"""
+    # Проверяем права доступа
     if current_user.role == "child" and current_user.id != child_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Вы можете видеть только свои задачи"
         )
 
-    return task_crud.get_task_assignments(
+    assignments = task_crud.get_task_assignments(
         db,
         child_id=child_id,
         is_completed=is_completed,
@@ -171,15 +202,16 @@ async def get_assignments(
         skip=skip,
         limit=limit
     )
+    return assignments
 
 
-@router.get("/assignments/{assignment_id}", response_model=TaskAssignmentResponse)
-async def get_assignment(
+@router.put("/assignments/{assignment_id}/complete", response_model=TaskAssignmentResponse)
+async def complete_assignment(
         assignment_id: int,
         db: Session = Depends(get_db),
         current_user: UserResponse = Depends(get_current_user)
 ):
-    """Получение назначенной задачи по ID"""
+    """Отметка задачи как выполненной (для ребенка)"""
     assignment = task_crud.get_task_assignment(db, assignment_id)
     if not assignment:
         raise HTTPException(
@@ -187,24 +219,44 @@ async def get_assignment(
             detail="Задача не найдена"
         )
 
-    # Для ребенка проверяем, что это его задача
+    # Проверяем, что это задача текущего ребенка
     if current_user.role == "child" and current_user.id != assignment.child_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Вы можете видеть только свои задачи"
+            detail="Вы можете отмечать только свои задачи"
         )
 
-    return assignment
+    # Проверяем, не выполнена ли уже задача
+    if assignment.is_completed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Задача уже отмечена как выполненная"
+        )
+
+    update_data = TaskAssignmentUpdate(
+        is_completed=True,
+        completed_at=datetime.utcnow()
+    )
+
+    updated_assignment = task_crud.update_task_assignment(
+        db, assignment_id, update_data
+    )
+    return updated_assignment
 
 
-@router.put("/assignments/{assignment_id}", response_model=TaskAssignmentResponse)
-async def update_assignment(
+@router.put("/assignments/{assignment_id}/approve", response_model=TaskAssignmentResponse)
+async def approve_assignment(
         assignment_id: int,
-        assignment_data: TaskAssignmentUpdate,
         db: Session = Depends(get_db),
         current_user: UserResponse = Depends(get_current_user)
 ):
-    """Обновление статуса назначенной задачи"""
+    """Одобрение выполненной задачи (для родителя)"""
+    if current_user.role != "parent":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Только родители могут одобрять задачи"
+        )
+
     assignment = task_crud.get_task_assignment(db, assignment_id)
     if not assignment:
         raise HTTPException(
@@ -212,22 +264,89 @@ async def update_assignment(
             detail="Задача не найдена"
         )
 
-    # Проверяем права доступа
-    if current_user.role == "child":
-        if current_user.id != assignment.child_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Вы можете обновлять только свои задачи"
-            )
-        # Ребенок может только отмечать задачу как выполненную
-        if any(field in assignment_data.dict(exclude_unset=True)
-               for field in ["is_approved", "approved_at"]):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Дети не могут одобрять задачи"
-            )
+    # Проверяем, выполнена ли задача
+    if not assignment.is_completed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Задача еще не выполнена"
+        )
+
+    # Проверяем, не одобрена ли уже задача
+    if assignment.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Задача уже одобрена"
+        )
+
+    update_data = TaskAssignmentUpdate(
+        is_approved=True,
+        approved_at=datetime.utcnow()
+    )
 
     updated_assignment = task_crud.update_task_assignment(
-        db, assignment_id, assignment_data
+        db, assignment_id, update_data
     )
     return updated_assignment
+
+
+@router.delete("/assignments/{assignment_id}")
+async def delete_assignment(
+        assignment_id: int,
+        db: Session = Depends(get_db),
+        current_user: UserResponse = Depends(get_current_user)
+):
+    """Удаление назначенного задания"""
+    if current_user.role != "parent":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Только родители могут удалять задания"
+        )
+
+    assignment = task_crud.get_task_assignment(db, assignment_id)
+    if not assignment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Задание не найдено"
+        )
+
+    # Проверяем, не одобрено ли уже задание
+    if assignment.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Нельзя удалить одобренное задание"
+        )
+
+    if not task_crud.delete_task_assignment(db, assignment_id):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Не удалось удалить задание"
+        )
+
+    return {"status": "success"}
+
+
+@router.put("/assignments/{assignment_id}/return", response_model=TaskAssignmentResponse)
+async def return_assignment(
+        assignment_id: int,
+        parent_comment: str = Body(..., embed=True),
+        db: Session = Depends(get_db),
+        current_user: UserResponse = Depends(get_current_user)
+):
+    if current_user.role != "parent":
+        raise HTTPException(status_code=403, detail="Только родители могут возвращать задачи")
+
+    assignment = task_crud.get_task_assignment(db, assignment_id)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+
+    if not assignment.is_completed or assignment.is_approved:
+        raise HTTPException(status_code=400, detail="Можно вернуть только выполненную, но не одобренную задачу")
+
+    update_data = TaskAssignmentUpdate(
+        is_completed=False,
+        completed_at=None,
+        parent_comment=parent_comment,
+        returned_at=datetime.utcnow()
+    )
+
+    return task_crud.update_task_assignment(db, assignment_id, update_data)

@@ -11,7 +11,7 @@ export default defineNuxtConfig({
     transpile: ['@nuxt/ui']
   },
   devtools: {
-    enabled: true
+    enabled: process.env.NODE_ENV === 'development'
   },
   postcss: {
     plugins: {
@@ -30,15 +30,14 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE
     }
   },
   ssr: false,
-  devtools: { enabled: true },
   vite: {
     server: {
       watch: {
-        usePolling: true,
+        usePolling: process.env.CHOKIDAR_USEPOLLING === 'true',
         interval: 1000,
       },
       hmr: {
@@ -56,7 +55,7 @@ export default defineNuxtConfig({
   },
   tailwindcss: {
     configPath: '~/tailwind.config.ts',
-    exposeConfig: true,
+    exposeConfig: process.env.NODE_ENV === 'development',
     viewer: process.env.NODE_ENV === 'development'
   }
 })

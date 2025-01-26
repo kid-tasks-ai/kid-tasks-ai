@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.schemas.task import (
+    TaskTemplateBase,
     TaskTemplateCreate,
     TaskTemplateUpdate,
     TaskTemplateResponse,
@@ -14,8 +15,10 @@ from app.schemas.task import (
     TaskAssignmentUpdate,
     TaskAssignmentResponse
 )
+from app.schemas.task_generator import TaskGenerationRequest
 from app.schemas.user import UserResponse
-from app.crud import task as task_crud
+from app.crud import task as task_crud, child as child_crud
+from app.services.task_generator import TaskGenerationService
 
 router = APIRouter()
 
@@ -325,28 +328,20 @@ async def delete_assignment(
     return {"status": "success"}
 
 
-@router.put("/assignments/{assignment_id}/return", response_model=TaskAssignmentResponse)
-async def return_assignment(
-        assignment_id: int,
-        parent_comment: str = Body(..., embed=True),
+@router.post("/templates/generate")
+async def generate_task_templates(
+        generationRequest: TaskGenerationRequest,
         db: Session = Depends(get_db),
         current_user: UserResponse = Depends(get_current_user)
 ):
+    """Генерация шаблонов задач через AI"""
     if current_user.role != "parent":
-        raise HTTPException(status_code=403, detail="Только родители могут возвращать задачи")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Только родители могут генерировать задания"
+        )
 
-    assignment = task_crud.get_task_assignment(db, assignment_id)
-    if not assignment:
-        raise HTTPException(status_code=404, detail="Задача не найдена")
+    service = TaskGenerationService(db)
+    await service.generate_templates(generationRequest, current_user)
+    return {"status": "success"}
 
-    if not assignment.is_completed or assignment.is_approved:
-        raise HTTPException(status_code=400, detail="Можно вернуть только выполненную, но не одобренную задачу")
-
-    update_data = TaskAssignmentUpdate(
-        is_completed=False,
-        completed_at=None,
-        parent_comment=parent_comment,
-        returned_at=datetime.utcnow()
-    )
-
-    return task_crud.update_task_assignment(db, assignment_id, update_data)

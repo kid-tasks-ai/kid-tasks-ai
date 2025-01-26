@@ -46,6 +46,39 @@
       />
     </UFormGroup>
 
+    <UFormGroup label="Пол" required class="mb-4">
+      <div class="flex gap-6">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <URadio
+              v-model="form.gender"
+              value="male"
+              name="gender"
+              required
+          />
+          <UIcon
+              name="i-heroicons-user-circle"
+              class="w-5 h-5 text-blue-500"
+          />
+          <span>Мальчик</span>
+        </label>
+
+        <label class="flex items-center gap-2 cursor-pointer">
+          <URadio
+              v-model="form.gender"
+              value="female"
+              name="gender"
+              required
+          />
+          <UIcon
+              name="i-heroicons-user"
+              class="w-5 h-5 text-pink-500"
+          />
+          <span>Девочка</span>
+        </label>
+      </div>
+      <p v-if="errors.gender" class="mt-1 text-sm text-red-500">{{ errors.gender }}</p>
+    </UFormGroup>
+
     <UFormGroup label="Интересы">
       <UTextarea
           v-model="form.interests"
@@ -108,9 +141,14 @@ export default {
         email: '',
         password: '',
         age: 0,
+        gender: '',
         interests: '',
         preferences: ''
       },
+      genderOptions: [
+        { value: 'male', label: 'Мальчик', icon: 'i-heroicons-user-circle' },
+        { value: 'female', label: 'Девочка', icon: 'i-heroicons-user-circle' }
+      ],
       errors: {}
     }
   },

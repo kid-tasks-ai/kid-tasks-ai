@@ -3,7 +3,14 @@
   <UCard>
     <template #header>
       <div class="flex justify-between items-center">
-        <h3 class="text-lg font-medium">{{ child.name }}</h3>
+        <div class="flex items-center gap-2">
+          <UIcon
+              name="i-heroicons-user-circle"
+              class="w-5 h-5"
+              :class="genderIconColor"
+          />
+          <h3 class="text-lg font-medium">{{ child.name }}</h3>
+        </div>
         <span class="text-sm text-gray-500">{{ child.age }} лет</span>
       </div>
     </template>
@@ -67,7 +74,11 @@ export default {
   },
 
   emits: ['edit', 'delete'],
-
+  computed: {
+    genderIconColor() {
+      return this.child.gender === 'male' ? 'text-blue-500' : 'text-pink-500'
+    }
+  },
   methods: {
     confirmDelete() {
       this.$emit('delete')

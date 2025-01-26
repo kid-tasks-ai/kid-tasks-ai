@@ -29,6 +29,7 @@ class Child(Base):
     password_hash = Column(String, nullable=False)
     name = Column(String, nullable=False)
     age = Column(Integer)
+    gender = Column(String)
     interests = Column(Text)
     preferences = Column(Text)
     points_balance = Column(Integer, default=0)

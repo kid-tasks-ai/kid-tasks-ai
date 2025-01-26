@@ -19,6 +19,7 @@ def create_child(db: Session, child: ChildCreate, parent_id: int):
         password_hash=get_password_hash(child.password),
         name=child.name,
         age=child.age,
+        gender=child.gender,
         interests=child.interests,
         preferences=child.preferences,
         parent_id=parent_id,

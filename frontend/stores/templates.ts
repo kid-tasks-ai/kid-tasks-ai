@@ -137,6 +137,33 @@ export const useTemplatesStore = () => {
         }
     }
 
+    async function generateTasks(data: {
+        child_id: number;
+        task_count: number;
+        description: string;
+    }): Promise<{ status: string }> {
+        try {
+            loading.value = true
+            error.value = null
+            const config = useRuntimeConfig()
+
+            return await $fetch<{ status: string }>('/api/v1/tasks/templates/generate', {
+                baseURL: config.public.apiBase,
+                method: 'POST',
+                body: data,
+                headers: getHeaders()
+            })
+
+        } catch (err) {
+            console.error('Error generating tasks:', err)
+            const message = (err as { data?: { detail: string } })?.data?.detail
+            error.value = message || 'Не удалось сгенерировать задания'
+            throw err
+        } finally {
+            loading.value = false
+        }
+    }
+
     return {
         // State
         templates,
@@ -146,7 +173,8 @@ export const useTemplatesStore = () => {
         fetchTemplates,
         createTemplate,
         updateTemplate,
-        deleteTemplate
+        deleteTemplate,
+        generateTasks
     }
 }
 

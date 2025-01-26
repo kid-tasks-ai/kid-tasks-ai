@@ -4,6 +4,7 @@ export interface Child {
     email: string
     name: string
     age: number
+    gender: string
     interests?: string
     preferences?: string
     points_balance: number
@@ -14,6 +15,7 @@ export interface ChildFormData {
     email: string
     name: string
     age: number
+    gender: string
     interests?: string
     preferences?: string
     password?: string

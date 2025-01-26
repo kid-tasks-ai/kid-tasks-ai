@@ -15,6 +15,7 @@ email-validator = "*"
 python-jose = {extras = ["cryptography"], version = "*"}
 passlib = "*"
 python-multipart = "*"
+requests = "*"
 
 [dev-packages]
 

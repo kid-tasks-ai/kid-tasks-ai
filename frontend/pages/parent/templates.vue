@@ -178,6 +178,13 @@
         </div>
       </template>
     </UModal>
+
+    <TaskGenerator
+        :is-open="showGeneratorModal"
+        :child-id="filters.childId"
+        @close="showGeneratorModal = false"
+        @success="handleGeneratedTasks"
+    />
   </div>
 </template>
 
@@ -186,6 +193,7 @@ import { useChildrenStore } from '~/stores/children'
 import { useTemplatesStore } from '~/stores/templates'
 import { useAssignmentsStore } from '~/stores/assignments'  // Добавляем импорт
 import TemplateForm from '~/components/tasks/TemplateForm.vue'
+import TaskGenerator from '~/components/tasks/TaskGeneratorForm.vue'
 
 definePageMeta({
   middleware: ['parent']
@@ -195,7 +203,8 @@ export default {
   name: 'TemplatesPage',
   layout: 'parent',
   components: {
-    TemplateForm
+    TemplateForm,
+    TaskGenerator
   },
 
   setup() {
@@ -219,7 +228,8 @@ export default {
       templates: [],
       children: [],
       isGenerating: false,
-      assigningTemplateId: null
+      assigningTemplateId: null,
+      showGeneratorModal: false,
     }
   },
 
@@ -326,39 +336,29 @@ export default {
     },
     async openGenerator() {
       if (!this.filters.childId) return;
-      // TODO: Здесь будет открываться модальное окно генератора
-      this.isGenerating = true;
-      try {
-        // Заглушка для демонстрации анимации загрузки
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // TODO: Реализовать генерацию
-      } finally {
-        this.isGenerating = false;
-      }
+      this.showGeneratorModal = true;
+    },
+    async handleGeneratedTasks() {
+      await this.loadTemplates()
+      this.showGeneratorModal = false
     },
     async assignTemplate(template) {
       try {
-        this.loading = true;
-        const assignmentsStore = useAssignmentsStore()
-        await assignmentsStore.createFromTemplate(template.id)
+        this.assigningTemplateId = template.id
+        await this.assignmentsStore.createFromTemplate(template.id)
 
         const {$notify} = useNuxtApp()
         $notify.success('Шаблон успешно назначен')
 
-        await this.loadTemplates() // Обновляем список шаблонов
-
+        await this.loadTemplates()
       } catch (err) {
         console.error('Error assigning template:', err)
-
-        let errorMessage = err?.data?.detail || 'Не удалось назначить задание'
-
         const {$notify} = useNuxtApp()
-        $notify.error(errorMessage)
-
+        $notify.error(err?.data?.detail || 'Не удалось назначить задание')
       } finally {
-        this.loading = false
+        this.assigningTemplateId = null
       }
-    }
+    },
   }
 }
 </script>

@@ -28,6 +28,11 @@ export default defineNuxtConfig({
       ]
     }
   },
+  colorMode: {
+    preference: 'light',
+    fallback: 'light',
+    classSuffix: '',
+  },
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE

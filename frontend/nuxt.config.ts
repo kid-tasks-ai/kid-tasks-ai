@@ -24,7 +24,7 @@ export default defineNuxtConfig({
       title: 'KidTasks AI',
       meta: [
         { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { name: 'description', content: 'Игровая платформа для развития детей через выполнение заданий' },
         { name: 'theme-color', content: '#ffffff' },
         { name: 'mobile-web-app-capable', content: 'yes' },

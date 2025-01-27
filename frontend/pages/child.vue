@@ -23,9 +23,13 @@
 
           <!-- Баллы и кнопка меню на мобильных -->
           <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2">
+            <div v-if="profileStore.loading.value" class="flex items-center gap-2">
+              <UIcon name="i-heroicons-star" class="text-yellow-500 animate-pulse" />
+              <span class="font-medium">Загрузка...</span>
+            </div>
+            <div v-else class="flex items-center gap-2">
               <UIcon name="i-heroicons-star" class="text-yellow-500" />
-              <span class="font-medium">{{ pointsBalance }} баллов</span>
+              <span class="font-medium">{{ profileStore.pointsBalance }} баллов</span>
             </div>
 
             <!-- Мобильное меню -->
@@ -68,9 +72,17 @@
 
 <script>
 import { useAuthStore } from '~/stores/auth'
+import { useChildProfileStore } from '~/stores/childProfile'
 
 export default {
   name: 'ChildLayout',
+
+  setup() {
+    const profileStore = useChildProfileStore()
+    return {
+      profileStore
+    }
+  },
 
   data() {
     return {
@@ -79,8 +91,18 @@ export default {
       menuItems: [
         { path: '/child', label: 'Мои задания' },
         { path: '/child/rewards', label: 'Награды' }
-      ],
-      pointsBalance: 0
+      ]
+    }
+  },
+
+  async created() {
+    try {
+      await this.profileStore.fetchProfile()
+    } catch (err) {
+      console.error('Ошибка загрузки профиля:', err)
+      // Можно добавить уведомление об ошибке
+      const { $notify } = useNuxtApp()
+      $notify?.error('Не удалось загрузить данные профиля')
     }
   },
 
